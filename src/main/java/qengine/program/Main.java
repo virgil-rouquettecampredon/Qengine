@@ -36,7 +36,7 @@ import org.eclipse.rdf4j.rio.Rio;
  * 
  * @author Olivier Rodriguez <olivier.rodriguez1@umontpellier.fr>
  */
-final class Main {
+public final class Main {
 	static final String baseURI = null;
 
 	/**
@@ -62,10 +62,14 @@ final class Main {
 	public static void processAQuery(ParsedQuery query) {
 		List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
 
+		//TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
+
 		System.out.println("first pattern : " + patterns.get(0));
 
+		//Retourne le 3eme élément de la branche d'une requête
 		System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
 
+		//Recupère le sujet de la requête
 		System.out.println("variables to project : ");
 
 		// Utilisation d'une classe anonyme
@@ -90,7 +94,7 @@ final class Main {
 	/**
 	 * Traite chaque requête lue dans {@link #queryFile} avec {@link #processAQuery(ParsedQuery)}.
 	 */
-	private static void parseQueries() throws FileNotFoundException, IOException {
+	public static void parseQueries() throws FileNotFoundException, IOException {
 		/**
 		 * Try-with-resources
 		 * 
@@ -128,7 +132,7 @@ final class Main {
 	/**
 	 * Traite chaque triple lu dans {@link #dataFile} avec {@link MainRDFHandler}.
 	 */
-	private static void parseData() throws FileNotFoundException, IOException {
+	public static KnowledgeBase parseData() throws FileNotFoundException, IOException {
 
 		try (Reader dataReader = new FileReader(dataFile)) {
 			//Creation du HashMap<Integer, String> pour les creer le dictionnaire
@@ -161,6 +165,13 @@ final class Main {
 			System.out.println("POS : " + posMap);
 			System.out.println("PSO : " + psoMap);
 
+			KnowledgeBase kb = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
+
+			return kb;
+
 		}
+
+		//TODO: ANALYSER LES QUERIES EN ETOILE (Dans sample_query.queryset), analyser chaque branche et l'enregistrer dans les structures dépolyées, puis faire la jointure des résultats
+		// En utilisant les données de la bdd, enregistrer
 	}
 }
