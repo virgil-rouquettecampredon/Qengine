@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
+import org.eclipse.rdf4j.query.algebra.In;
 import org.eclipse.rdf4j.query.algebra.Projection;
 import org.eclipse.rdf4j.query.algebra.StatementPattern;
 import org.eclipse.rdf4j.query.algebra.helpers.AbstractQueryModelVisitor;
@@ -132,31 +133,33 @@ final class Main {
 		try (Reader dataReader = new FileReader(dataFile)) {
 			//Creation du HashMap<Integer, String> pour les creer le dictionnaire
 			Map<String, Integer> dictionnaire = new HashMap<>();
+			Map<Integer, String> dictionnaireReverse = new HashMap<>();
 
 			//Creation des index des la bdd
-			ArrayList<TripleIndex> osp = new ArrayList<>();
-			ArrayList<TripleIndex> ops = new ArrayList<>();
-			ArrayList<TripleIndex> pos = new ArrayList<>();
-			ArrayList<TripleIndex> pso = new ArrayList<>();
-			ArrayList<TripleIndex> sop = new ArrayList<>();
-			ArrayList<TripleIndex> spo = new ArrayList<>();
+			Map<Integer, Map<Integer, Set<Integer>>> ospMap = new HashMap<>();
+			Map<Integer, Map<Integer, Set<Integer>>> opsMap = new HashMap<>();
+			Map<Integer, Map<Integer, Set<Integer>>> posMap = new HashMap<>();
+			Map<Integer, Map<Integer, Set<Integer>>> psoMap = new HashMap<>();
+			Map<Integer, Map<Integer, Set<Integer>>> sopMap = new HashMap<>();
+			Map<Integer, Map<Integer, Set<Integer>>> spoMap = new HashMap<>();
 
 			// On va parser des données au format ntriples
 			RDFParser rdfParser = Rio.createParser(RDFFormat.NTRIPLES);
 
 			// On utilise notre implémentation de handler
-			rdfParser.setRDFHandler(new MainRDFHandler(dictionnaire, spo, sop, osp, ops, pos, pso));
+			rdfParser.setRDFHandler(new MainRDFHandler(dictionnaire,dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap));
 
 			// Parsing et traitement de chaque triple par le handler
 			rdfParser.parse(dataReader, baseURI);
 
 			System.out.println("Dictionnaire : " + dictionnaire);
-			System.out.println("SPO : " + spo);
-			System.out.println("SOP : " + sop);
-			System.out.println("OSP : " + osp);
-			System.out.println("OPS : " + ops);
-			System.out.println("POS : " + pos);
-			System.out.println("PSO : " + pso);
+			System.out.println("DictionnaireReverse : " + dictionnaireReverse);
+			System.out.println("SPO : " + spoMap);
+			System.out.println("SOP : " + sopMap);
+			System.out.println("OSP : " + ospMap);
+			System.out.println("OPS : " + opsMap);
+			System.out.println("POS : " + posMap);
+			System.out.println("PSO : " + psoMap);
 
 		}
 	}
