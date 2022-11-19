@@ -60,6 +60,7 @@ public final class Main {
 	 * Méthode utilisée ici lors du parsing de requête sparql pour agir sur l'objet obtenu.
 	 */
 	public static void processAQuery(ParsedQuery query) {
+		//System.out.println("Query: " + query);
 		List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
 
 		//TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
@@ -173,5 +174,6 @@ public final class Main {
 
 		//TODO: ANALYSER LES QUERIES EN ETOILE (Dans sample_query.queryset), analyser chaque branche et l'enregistrer dans les structures dépolyées, puis faire la jointure des résultats
 		// En utilisant les données de la bdd, enregistrer
+		// Pour l'interpretation, faire l'interpretation de chaque branche, puis faire la jointure des résultats
 	}
 }
