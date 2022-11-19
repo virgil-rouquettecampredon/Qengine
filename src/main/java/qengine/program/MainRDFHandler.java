@@ -40,11 +40,9 @@ public final class MainRDFHandler extends AbstractRDFHandler {
 	}
 
 	private void addTriple(Map<Integer, Map<Integer, Set<Integer>>> index, String firstElement, String secondElement, String thirdElement){
-		System.out.println("Adding triple: " + firstElement + " " + secondElement + " " + thirdElement);
+		//System.out.println("Adding triple: " + firstElement + " " + secondElement + " " + thirdElement);
 		if (index.containsKey(dico.get(firstElement))){
-			System.out.println("first element already in index");
 			if (index.get(dico.get(firstElement)).containsKey(dico.get(secondElement))){
-				System.out.println("Contenue de l'index: " + index.get(dico.get(firstElement)).containsKey(dico.get(secondElement)));
 				index.get(dico.get(firstElement)).get(dico.get(secondElement)).add(dico.get(thirdElement));
 			} else {
 				Set<Integer> leaf = new HashSet<>();
@@ -63,18 +61,17 @@ public final class MainRDFHandler extends AbstractRDFHandler {
 	//TODO: Organiser le dictionnaire dans l'ordre lexicographique
 	public void handleStatement(Statement st) {
 		//System.out.println("\n" + st.getSubject() + "\t " + st.getPredicate() + "\t " + st.getObject());
-		System.out.println(dico.containsValue(st.getSubject().toString()));
-		if (!dico.containsValue(st.getSubject().toString())) {
+		if (!dico.containsKey(st.getSubject().toString())) {
 			dico.put(st.getSubject().toString(), compteur);
 			dicoReverse.put(compteur, st.getSubject().toString());
 			compteur++;
 		}
-		if (!dico.containsValue(st.getPredicate().toString())) {
+		if (!dico.containsKey(st.getPredicate().toString())) {
 			dico.put(st.getPredicate().toString(), compteur);
 			dicoReverse.put(compteur, st.getPredicate().toString());
 			compteur++;
 		}
-		if (!dico.containsValue(st.getObject().toString())) {
+		if (!dico.containsKey(st.getObject().toString())) {
 			dico.put(st.getObject().toString(), compteur);
 			dicoReverse.put(compteur, st.getObject().toString());
 			compteur++;

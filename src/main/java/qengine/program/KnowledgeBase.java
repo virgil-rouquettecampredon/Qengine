@@ -65,17 +65,15 @@ public class KnowledgeBase {
 
         //System.out.println("predicate = " + predicate);
         //System.out.println("object = " + object);
-
-        int predicateId = dico.get(predicate);
-        int objectId = dico.get(object);
-
-        /*System.out.println("predicateId = " + predicateId);
-        System.out.println("objectId = " + objectId);
-
-        System.out.println("Answers = " + pos.get(predicateId));
-        System.out.println("Answers = " + pos.get(predicateId).get(objectId));*/
-
-        Set<Integer> answers = pos.get(predicateId).get(objectId);
-        return answers == null? new HashSet<>() : answers;
+        try {
+            int predicateId = dico.get(predicate);
+            int objectId = dico.get(object);
+            //System.out.println("predicateId = " + predicateId);
+            //System.out.println("objectId = " + objectId);
+            Set<Integer> answers = pos.get(predicateId).get(objectId);
+            return answers == null? new HashSet<>() : answers;
+        } catch (Exception e) {
+            return new HashSet<>();
+        }
     }
 }

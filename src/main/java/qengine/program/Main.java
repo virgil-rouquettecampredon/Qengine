@@ -47,12 +47,12 @@ public final class Main {
 	/**
 	 * Fichier contenant les requêtes sparql
 	 */
-	static final String queryFile = workingDir + "sample_query.queryset";
+	static final String queryFile = workingDir + "STAR_ALL_workload.queryset";
 
 	/**
 	 * Fichier contenant des données rdf
 	 */
-	static final String dataFile = workingDir + "sample_data.nt";
+	static final String dataFile = workingDir + "100K.nt";
 
 	static KnowledgeBase knowledgeBase;
 
@@ -79,7 +79,6 @@ public final class Main {
 
 
 			Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
-			System.out.println("Local answers: " + localAnswers);
 			if(localAnswers.isEmpty()){
 				answers = new HashSet<>();
 				break;
@@ -202,12 +201,12 @@ public final class Main {
 
 			System.out.println("Dictionnaire : " + dictionnaire);
 			System.out.println("DictionnaireReverse : " + dictionnaireReverse);
-			System.out.println("SPO : " + spoMap);
+			/*System.out.println("SPO : " + spoMap);
 			System.out.println("SOP : " + sopMap);
 			System.out.println("OSP : " + ospMap);
 			System.out.println("OPS : " + opsMap);
 			System.out.println("POS : " + posMap);
-			System.out.println("PSO : " + psoMap);
+			System.out.println("PSO : " + psoMap);*/
 
 			knowledgeBase = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
 
