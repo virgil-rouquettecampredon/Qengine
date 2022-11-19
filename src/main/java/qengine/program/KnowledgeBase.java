@@ -1,5 +1,8 @@
 package qengine.program;
 
+import org.eclipse.rdf4j.query.algebra.StatementPattern;
+
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,4 +59,23 @@ public class KnowledgeBase {
         return spo;
     }
 
+    public Set<Integer> getAnswers(StatementPattern pattern){
+        String predicate = pattern.getPredicateVar().getValue().stringValue();
+        String object = pattern.getObjectVar().getValue().stringValue();
+
+        //System.out.println("predicate = " + predicate);
+        //System.out.println("object = " + object);
+
+        int predicateId = dico.get(predicate);
+        int objectId = dico.get(object);
+
+        /*System.out.println("predicateId = " + predicateId);
+        System.out.println("objectId = " + objectId);
+
+        System.out.println("Answers = " + pos.get(predicateId));
+        System.out.println("Answers = " + pos.get(predicateId).get(objectId));*/
+
+        Set<Integer> answers = pos.get(predicateId).get(objectId);
+        return answers == null? new HashSet<>() : answers;
+    }
 }

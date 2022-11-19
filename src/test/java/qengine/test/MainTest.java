@@ -56,6 +56,11 @@ public class MainTest {
         assertEquals(sop.get(0).get(2), osp.get(2).get(0));
     }
 
+    @Test
+    public void dicoIsSameFor_DicoReverse() {
+        assertEquals(dico.get("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), dicoReverse.get(1));
+    }
+
 
 
 }

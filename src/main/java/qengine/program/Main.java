@@ -54,6 +54,8 @@ public final class Main {
 	 */
 	static final String dataFile = workingDir + "sample_data.nt";
 
+	static KnowledgeBase knowledgeBase;
+
 	// ========================================================================
 
 	/**
@@ -65,13 +67,54 @@ public final class Main {
 
 		//TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
 
-		System.out.println("first pattern : " + patterns.get(0));
+		Set<Integer> answers = new HashSet<>();
+
+		System.out.println("SELECT ?v0 WHERE {");
+		for (StatementPattern pattern : patterns) {
+			/*System.out.println("Pattern:");
+			System.out.print("Subject: " + pattern.getSubjectVar());
+			System.out.print("Predicate: " + pattern.getPredicateVar());
+			System.out.println("Object: " + pattern.getObjectVar());*/
+			System.out.println("\t" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .");
+
+
+			Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
+			System.out.println("Local answers: " + localAnswers);
+			if(localAnswers.isEmpty()){
+				answers = new HashSet<>();
+				break;
+			}
+			else if (answers.isEmpty()) {
+				answers.addAll(localAnswers);
+			}
+			else {
+				answers.retainAll(localAnswers);
+			}
+		}
+
+		System.out.println("}");
+		if (answers.isEmpty()) {
+			System.out.println("No answer\n");
+		}
+		else {
+			System.out.println("Answers:");
+			for (Integer answer : answers) {
+				System.out.println("\t" + knowledgeBase.getDicoReverse().get(answer));
+			}
+			System.out.println();
+		}
+		//System.out.println("first pattern : " + patterns.get(0));
+
+
 
 		//Retourne le 3eme élément de la branche d'une requête
 		System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
 
 		//Recupère le sujet de la requête
 		System.out.println("variables to project : ");
+
+		//Affichage des résultats pour chaque requêtes
+
 
 		// Utilisation d'une classe anonyme
 		query.getTupleExpr().visit(new AbstractQueryModelVisitor<RuntimeException>() {
@@ -166,9 +209,9 @@ public final class Main {
 			System.out.println("POS : " + posMap);
 			System.out.println("PSO : " + psoMap);
 
-			KnowledgeBase kb = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
+			knowledgeBase = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
 
-			return kb;
+			return knowledgeBase;
 
 		}
 
