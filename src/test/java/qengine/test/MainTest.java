@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static qengine.program.Main.parseData;
 import static qengine.program.Main.parseQueries;
 
@@ -57,10 +58,19 @@ public class MainTest {
     }
 
     @Test
-    public void dicoIsSameFor_DicoReverse() {
-        assertEquals(dico.get("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), dicoReverse.get(1));
+    public void dicoSameSize(){
+        assertEquals(dico.size(), dicoReverse.size());
     }
-
+    @Test
+    public void dicoIsSameFor_DicoReverse() {
+        boolean isSame = true;
+        for (int i = 0; i < dicoReverse.size(); i++) {
+            if ((!dico.containsKey(dicoReverse.get(i))) || dico.get(dicoReverse.get(i)) != i) {
+                isSame = false;
+            }
+        }
+        assertTrue(isSame);
+    }
 
 
 }

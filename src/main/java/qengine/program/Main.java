@@ -1,9 +1,6 @@
 package qengine.program;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -61,22 +58,23 @@ public final class Main {
 	/**
 	 * Méthode utilisée ici lors du parsing de requête sparql pour agir sur l'objet obtenu.
 	 */
-	public static void processAQuery(ParsedQuery query) {
+	public static void processAQuery(ParsedQuery query, FileWriter file) {
 		//System.out.println("Query: " + query);
 		List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
 
 		//TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
 
 		Set<Integer> answers = new HashSet<>();
-
-		System.out.println("SELECT ?v0 WHERE {");
+		String request = "";
+		request += "SELECT ?v0 WHERE {";
+		System.out.println(request);
 		for (StatementPattern pattern : patterns) {
 			/*System.out.println("Pattern:");
 			System.out.print("Subject: " + pattern.getSubjectVar());
 			System.out.print("Predicate: " + pattern.getPredicateVar());
 			System.out.println("Object: " + pattern.getObjectVar());*/
 			System.out.println("\t" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .");
-
+			request += "?" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .";
 
 			Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
 			if(localAnswers.isEmpty()){
@@ -92,13 +90,24 @@ public final class Main {
 		}
 
 		System.out.println("}");
+		request += "}";
 		if (answers.isEmpty()) {
 			System.out.println("No answer\n");
+			try {
+				file.append(dataFile + "  ,  " + request + "  ,  " + "No answer\n");
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		else {
 			System.out.println("Answers:");
 			for (Integer answer : answers) {
 				System.out.println("\t" + knowledgeBase.getDicoReverse().get(answer));
+				try {
+					file.append(dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 			System.out.println();
 		}
@@ -135,7 +144,7 @@ public final class Main {
 	// ========================================================================
 
 	/**
-	 * Traite chaque requête lue dans {@link #queryFile} avec {@link #processAQuery(ParsedQuery)}.
+	 * Traite chaque requête lue dans {@link #queryFile} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
 	 */
 	public static void parseQueries() throws FileNotFoundException, IOException {
 		/**
@@ -151,7 +160,13 @@ public final class Main {
 			SPARQLParser sparqlParser = new SPARQLParser();
 			Iterator<String> lineIterator = lineStream.iterator();
 			StringBuilder queryString = new StringBuilder();
-
+			//create a folder to store the results if it doesn't exist
+			File folder = new File("results");
+			if (!folder.exists()) {
+				folder.mkdir();
+			}
+			FileWriter file = new FileWriter("results" + File.separator + "results.csv");
+			file.append("dataBase  ,  Namerequest  ,  result\n");
 			while (lineIterator.hasNext())
 			/*
 			 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
@@ -164,11 +179,12 @@ public final class Main {
 				if (line.trim().endsWith("}")) {
 					ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
 
-					processAQuery(query); // Traitement de la requête, à adapter/réécrire pour votre programme
+					processAQuery(query, file); // Traitement de la requête, à adapter/réécrire pour votre programme
 
 					queryString.setLength(0); // Reset le buffer de la requête en chaine vide
 				}
 			}
+			file.close();
 		}
 	}
 
