@@ -53,6 +53,8 @@ public final class Main {
 
 	static KnowledgeBase knowledgeBase;
 
+
+
 	// ========================================================================
 
 	/**
@@ -65,6 +67,7 @@ public final class Main {
 		//TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
 
 		Set<Integer> answers = new HashSet<>();
+		boolean firstEmpty = true;
 		String request = "";
 		request += "SELECT ?v0 WHERE {";
 		System.out.println(request);
@@ -81,11 +84,17 @@ public final class Main {
 				answers = new HashSet<>();
 				break;
 			}
-			else if (answers.isEmpty()) {
+			//TODO: Si l'intersection des résultats est vide, on peut arrêter la boucle
+			else if (firstEmpty) {
 				answers.addAll(localAnswers);
+				firstEmpty = false;
 			}
 			else {
 				answers.retainAll(localAnswers);
+			}
+
+			if(answers.isEmpty() && !firstEmpty){
+				break;
 			}
 		}
 
@@ -166,7 +175,7 @@ public final class Main {
 				folder.mkdir();
 			}
 			FileWriter file = new FileWriter("results" + File.separator + "results.csv");
-			file.append("dataBase  ,  Namerequest  ,  result\n");
+			file.append("DataBase  ,  NameRequest  ,  Result\n");
 			while (lineIterator.hasNext())
 			/*
 			 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'

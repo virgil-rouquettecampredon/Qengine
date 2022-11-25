@@ -31,11 +31,17 @@ public class MainTest {
 
         //Get all indexes from the knowledgeBase
         osp = knowledgeBase.getOsp();
+        System.out.println("osp: " + osp.size());
         ops = knowledgeBase.getOps();
+        System.out.println("ops: " + ops.size());
         pos = knowledgeBase.getPos();
+        System.out.println("pos: " + pos.size());
         pso = knowledgeBase.getPso();
+        System.out.println("pso: " + pso.size());
         sop = knowledgeBase.getSop();
+        System.out.println("sop: " + sop.size());
         spo = knowledgeBase.getSpo();
+        System.out.println("spo: " + spo.size());
 
         //Get all dictionnaries from the knowledgeBase
         dico = knowledgeBase.getDico();
@@ -44,17 +50,62 @@ public class MainTest {
 
     @Test
     public void subjectIsSameFor_OPS_POS() {
-        assertEquals(ops.get(2).get(1), pos.get(1).get(2));
+        boolean subjectIsSame = true;
+        // For each a map ops
+        for (Map.Entry<Integer, Map<Integer, Set<Integer>>> entry : ops.entrySet()) {
+            Integer object = entry.getKey();
+            Map<Integer, Set<Integer>> mapPS = ops.get(object);
+            for (Map.Entry<Integer, Set<Integer>> entry2 : mapPS.entrySet()) {
+                Integer predicate = entry2.getKey();
+                Set<Integer> subjectOPS = mapPS.get(predicate);
+
+                Set<Integer> subjectPOS = pos.get(predicate).get(object);
+                if (!subjectOPS.equals(subjectPOS)) {
+                    subjectIsSame = false;
+                }
+            }
+        }
+        assertTrue(subjectIsSame);
     }
 
     @Test
     public void objectIsSameFor_PSO_SPO() {
-        assertEquals(pso.get(1).get(0), spo.get(0).get(1));
+        boolean objectIsSame = true;
+        // For each a map ops
+        for (Map.Entry<Integer, Map<Integer, Set<Integer>>> entry : pso.entrySet()) {
+            Integer predicate = entry.getKey();
+            Map<Integer, Set<Integer>> mapSO = pso.get(predicate);
+            for (Map.Entry<Integer, Set<Integer>> entry2 : mapSO.entrySet()) {
+                Integer subject = entry2.getKey();
+                Set<Integer> objectPSO = mapSO.get(subject);
+
+                Set<Integer> objectSPO = spo.get(subject).get(predicate);
+                if (!objectPSO.equals(objectSPO)) {
+                    objectIsSame = false;
+                }
+            }
+        }
+        assertTrue(objectIsSame);
     }
 
     @Test
     public void predicateIsSameFor_SOP_OSP() {
-        assertEquals(sop.get(0).get(2), osp.get(2).get(0));
+        boolean predicateIsSame = true;
+        // For each a map ops
+        for (Map.Entry<Integer, Map<Integer, Set<Integer>>> entry : sop.entrySet()) {
+            Integer subject = entry.getKey();
+            Map<Integer, Set<Integer>> mapOP = sop.get(subject);
+            for (Map.Entry<Integer, Set<Integer>> entry2 : mapOP.entrySet()) {
+                Integer object = entry2.getKey();
+                Set<Integer> predicateSOP = mapOP.get(object);
+
+                Set<Integer> predicateOSP = osp.get(object).get(subject);
+                if (!predicateSOP.equals(predicateOSP)) {
+                    predicateIsSame = false;
+                }
+            }
+        }
+        assertTrue(predicateIsSame);
     }
 
     @Test
