@@ -229,7 +229,7 @@ public final class Main {
 		File[] listOfFiles = folder.listFiles();
 		//Read the queries
 		for (File file : listOfFiles) {
-			if (file.isFile()) {
+			if (file.isFile() && file.getName().endsWith(".queryset")) {
 				parseQueries(queryFolder + File.separator + file.getName());
 			}
 		}
