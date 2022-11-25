@@ -41,20 +41,24 @@ public final class MainRDFHandler extends AbstractRDFHandler {
 
 	private void addTriple(Map<Integer, Map<Integer, Set<Integer>>> index, String firstElement, String secondElement, String thirdElement){
 		//System.out.println("Adding triple: " + firstElement + " " + secondElement + " " + thirdElement);
-		if (index.containsKey(dico.get(firstElement))){
-			if (index.get(dico.get(firstElement)).containsKey(dico.get(secondElement))){
-				index.get(dico.get(firstElement)).get(dico.get(secondElement)).add(dico.get(thirdElement));
+		int firstElementId = dico.get(firstElement);
+		int secondElementId = dico.get(secondElement);
+		int thirdElementId = dico.get(thirdElement);
+
+		if (index.containsKey(firstElementId)) {
+			if (index.get(firstElementId).containsKey(secondElementId)){
+				index.get(firstElementId).get(secondElementId).add(thirdElementId);
 			} else {
 				Set<Integer> leaf = new HashSet<>();
-				leaf.add(dico.get(thirdElement));
-				index.get(dico.get(firstElement)).put(dico.get(secondElement), leaf);
+				leaf.add(thirdElementId);
+				index.get(firstElementId).put(secondElementId, leaf);
 			}
 		} else {
 			Set<Integer> leaf = new HashSet<>();
-			leaf.add(dico.get(thirdElement));
+			leaf.add(thirdElementId);
 			Map<Integer, Set<Integer>> map = new HashMap<>();
-			map.put(dico.get(secondElement), leaf);
-			index.put(dico.get(firstElement), map);
+			map.put(secondElementId, leaf);
+			index.put(firstElementId, map);
 		}
 	}
 	@Override

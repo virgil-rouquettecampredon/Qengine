@@ -3,6 +3,7 @@ package qengine.test;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import qengine.program.KnowledgeBase;
+import qengine.program.Main;
 
 import java.util.Map;
 import java.util.Set;
@@ -26,8 +27,10 @@ public class MainTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        KnowledgeBase knowledgeBase = parseData();
-        parseQueries();
+        Main main = new Main();
+        Main.main(new String[]{"-q", "queries", "-d", "data/100K.nt"});
+        KnowledgeBase knowledgeBase = main.parseData();
+        parseQueries("queries/STAR_ALL_workload.queryset");
 
         //Get all indexes from the knowledgeBase
         osp = knowledgeBase.getOsp();

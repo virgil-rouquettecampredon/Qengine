@@ -35,21 +35,12 @@ import org.eclipse.rdf4j.rio.Rio;
  */
 public final class Main {
 	static final String baseURI = null;
-
-	/**
-	 * Votre répertoire de travail où vont se trouver les fichiers à lire
-	 */
-	static final String workingDir = "data/";
-
-	/**
-	 * Fichier contenant les requêtes sparql
-	 */
-	static final String queryFile = workingDir + "STAR_ALL_workload.queryset";
-
-	/**
-	 * Fichier contenant des données rdf
-	 */
-	static final String dataFile = workingDir + "100K.nt";
+	private static String queryFolder;
+	private static String dataFile;
+	private static String outputFolder = "output";
+	private static boolean useJena = false;
+	private static boolean warm = false;
+	private static boolean shuffle = false;
 
 	static KnowledgeBase knowledgeBase;
 
@@ -142,12 +133,108 @@ public final class Main {
 		});
 	}
 
+	private static void printHelp() {
+		System.out.println("Usage: java -jar rdfengine --queries <queryfile> --data <datafile>");
+		System.out.println("-q --queries <queryfile>\n\tPath to the file containing the queries");
+		System.out.println("-d --data <datafile>\n\tPath to the file containing the knowledge base");
+		System.out.println("-o, --output <output_folder>\n\tSpecify the output file with --output <outputfile> (default is output)");
+		System.out.println("-J, --Jena\n\tUse Jena to verify the answers, and check completeness");
+		System.out.println("-w, --warm\n\tPrint this message");
+		System.out.println("-s, --shuffle\n\tShuffle the queries before processing them");
+		System.out.println("-h, --help\n\tDisplay this message again");
+		System.exit(0);
+	}
+
+	private static void processArguments(String[] args) {
+		if (args.length < 4) {
+			System.out.println("Not enough arguments");
+			printHelp();
+		}
+		for (int i = 0; i < args.length; i++) {
+			switch (args[i]) {
+				case "-q":
+				case "--queries":
+					if (i + 1 < args.length) {
+						queryFolder = args[i + 1];
+					}
+					else {
+						System.err.println("Missing argument for " + args[i]);
+						printHelp();
+					}
+					break;
+				case "-d":
+				case "--data":
+					if (i + 1 < args.length) {
+						dataFile = args[i + 1];
+					}
+					else {
+						System.err.println("Missing argument for " + args[i]);
+						printHelp();
+					}
+					break;
+				case "-o":
+				case "--output":
+					if (i + 1 < args.length) {
+						outputFolder = args[i + 1];
+					}
+					else {
+						System.err.println("Missing argument for " + args[i]);
+						printHelp();
+					}
+					break;
+				case "-J":
+				case "--Jena":
+					useJena = true;
+					break;
+				case "-w":
+				case "--warm":
+					warm = true;
+					break;
+				case "-s":
+				case "--shuffle":
+					shuffle = true;
+					break;
+				case "-h":
+				case "--help":
+					printHelp();
+					break;
+				default:
+					if(args[i].startsWith("-")) {
+						System.err.println("Unknown argument " + args[i]);
+						printHelp();
+					}
+					break;
+			}
+		}
+	}
+
 	/**
 	 * Entrée du programme
 	 */
 	public static void main(String[] args) throws Exception {
+		// Reading parameters
+		processArguments(args);
+
+		//Start timer
+		long startTime = System.nanoTime();
+		//Read the knowledge base
+		System.out.println("Loading the knowledge base...");
 		parseData();
-		parseQueries();
+		System.out.println("Knowledge base loaded");
+		long endTime = System.nanoTime();
+		long duration = (endTime - startTime);
+		System.out.println("Loading the queries...");
+		//List all files in the query folder
+		File folder = new File(queryFolder);
+		File[] listOfFiles = folder.listFiles();
+		//Read the queries
+		for (File file : listOfFiles) {
+			if (file.isFile()) {
+				parseQueries(queryFolder + File.separator + file.getName());
+			}
+		}
+		System.out.println("Queries loaded");
+		System.out.println("Time to parse data: " + duration/1000000 + "ms");
 	}
 
 	// ========================================================================
@@ -155,7 +242,7 @@ public final class Main {
 	/**
 	 * Traite chaque requête lue dans {@link #queryFile} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
 	 */
-	public static void parseQueries() throws FileNotFoundException, IOException {
+	public static void parseQueries(String queryFile) throws FileNotFoundException, IOException {
 		/**
 		 * Try-with-resources
 		 * 
@@ -170,11 +257,16 @@ public final class Main {
 			Iterator<String> lineIterator = lineStream.iterator();
 			StringBuilder queryString = new StringBuilder();
 			//create a folder to store the results if it doesn't exist
-			File folder = new File("results");
+			File folder = new File(outputFolder);
 			if (!folder.exists()) {
-				folder.mkdir();
+				try {
+					folder.mkdir();
+				} catch (Exception se) {
+					System.err.println("Could not create the output folder");
+					throw se;
+				}
 			}
-			FileWriter file = new FileWriter("results" + File.separator + "results.csv");
+			FileWriter file = new FileWriter(outputFolder + File.separator + "results.csv");
 			file.append("DataBase  ,  NameRequest  ,  Result\n");
 			while (lineIterator.hasNext())
 			/*
