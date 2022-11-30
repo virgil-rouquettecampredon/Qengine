@@ -62,13 +62,13 @@ public final class Main {
 		boolean firstEmpty = true;
 		String request = "";
 		request += "SELECT ?v0 WHERE {";
-		System.out.println(request);
+		//System.out.println(request);
 		for (StatementPattern pattern : patterns) {
 			/*System.out.println("Pattern:");
 			System.out.print("Subject: " + pattern.getSubjectVar());
 			System.out.print("Predicate: " + pattern.getPredicateVar());
 			System.out.println("Object: " + pattern.getObjectVar());*/
-			System.out.println("\t" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .");
+			//System.out.println("\t" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .");
 			request += "?" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .";
 
 			Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
@@ -90,10 +90,10 @@ public final class Main {
 			}
 		}
 
-		System.out.println("}");
+		//System.out.println("}");
 		request += "}";
 		if (answers.isEmpty()) {
-			System.out.println("No answer\n");
+			//System.out.println("No answer\n");
 			try {
 				file.append(dataFile + "  ,  " + request + "  ,  " + "No answer\n");
 			} catch (IOException e) {
@@ -101,37 +101,37 @@ public final class Main {
 			}
 		}
 		else {
-			System.out.println("Answers:");
+			//System.out.println("Answers:");
 			for (Integer answer : answers) {
-				System.out.println("\t" + knowledgeBase.getDicoReverse().get(answer));
+				//System.out.println("\t" + knowledgeBase.getDicoReverse().get(answer));
 				try {
 					file.append(dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			}
-			System.out.println();
+			//System.out.println();
 		}
 		//System.out.println("first pattern : " + patterns.get(0));
 
 
 
 		//Retourne le 3eme élément de la branche d'une requête
-		System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
+		//System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
 
 		//Recupère le sujet de la requête
-		System.out.println("variables to project : ");
+		//System.out.println("variables to project : ");
 
 		//Affichage des résultats pour chaque requêtes
 
 
 		// Utilisation d'une classe anonyme
-		query.getTupleExpr().visit(new AbstractQueryModelVisitor<RuntimeException>() {
+		/*query.getTupleExpr().visit(new AbstractQueryModelVisitor<RuntimeException>() {
 
 			public void meet(Projection projection) {
-				System.out.println(projection.getProjectionElemList().getElements());
+				//System.out.println(projection.getProjectionElemList().getElements());
 			}
-		});
+		});*/
 	}
 
 	private static void printHelp() {
@@ -330,6 +330,9 @@ public final class Main {
 
 	//use Jena to answer a multiply query in a query folder
 	public static void parseQueriesJena(String queryFolder, Model model) throws FileNotFoundException, IOException {
+		//TODO: Parcourir tous les fichiers de requêtes dans le dossier
+		//TODO: Parcourir chaque requête dans le fichier
+
 		String queryString = "SELECT ?v0 WHERE {\n" +
 				"\t?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country137> . }";
 		Query query = QueryFactory.create(queryString) ;
@@ -372,8 +375,8 @@ public final class Main {
 			// Parsing et traitement de chaque triple par le handler
 			rdfParser.parse(dataReader, baseURI);
 
-			System.out.println("Dictionnaire : " + dictionnaire);
-			System.out.println("DictionnaireReverse : " + dictionnaireReverse);
+			//System.out.println("Dictionnaire : " + dictionnaire);
+			//System.out.println("DictionnaireReverse : " + dictionnaireReverse);
 			/*System.out.println("SPO : " + spoMap);
 			System.out.println("SOP : " + sopMap);
 			System.out.println("OSP : " + ospMap);
