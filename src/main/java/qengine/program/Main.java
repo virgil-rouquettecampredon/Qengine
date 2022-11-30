@@ -45,6 +45,8 @@ public final class Main {
 	private static boolean shuffle = false;
 	private static boolean exportQueryResults = false;
 
+	private static int nbTriplets = 0;
+
 	static KnowledgeBase knowledgeBase;
 
 
@@ -236,6 +238,7 @@ public final class Main {
 		System.out.println("Loading the knowledge base...");
 		parseData();
 		System.out.println("Knowledge base loaded");
+		countTriplets(knowledgeBase.getPos());
 		long endTime = System.currentTimeMillis();
 		long duration = (endTime - startTime);
 		System.out.println("Loading time : " + duration + " ms");
@@ -272,7 +275,7 @@ public final class Main {
 	// ========================================================================
 
 	/**
-	 * Traite chaque requête lue dans {@link #queryFolder} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
+	 * Traite chaque requête lue dans {@link #queryFolder} avec {@link #processAQuery(ParsedQuery)}.
 	 */
 	public static void parseQueries(String queryFile) throws IOException {
 		/**
@@ -337,6 +340,10 @@ public final class Main {
 					}
 				}
 			}
+
+			//Writing the stats
+			fileTiming.append(dataFileName + "  ,  " + queryFileName + "  ,  " +  nbTriplets + "  ,  " + queryCount + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + 6 + "  ,  " + timeCreatingIndexes + "  ,  " + timeEvaluatingWorkload + "  ,  " + (System.currentTimeMillis() - startTimeGlobal) +  "\n");
+			fileTiming.close();
 		}
 		//TODO: Calculer le temps total d'évaluation du workload, et le temps total du programme, et les écrire dans le fichier en ms
 	}
@@ -467,5 +474,13 @@ public final class Main {
 		//TODO: ANALYSER LES QUERIES EN ETOILE (Dans sample_query.queryset), analyser chaque branche et l'enregistrer dans les structures dépolyées, puis faire la jointure des résultats
 		// En utilisant les données de la bdd, enregistrer
 		// Pour l'interpretation, faire l'interpretation de chaque branche, puis faire la jointure des résultats
+	}
+
+	public static void countTriplets(Map<Integer, Map<Integer, Set<Integer>>> index) {
+		for (Map<Integer, Set<Integer>> map : index.values()) {
+			for (Set<Integer> set : map.values()) {
+				nbTriplets += set.size();
+			}
+		}
 	}
 }

@@ -26,7 +26,6 @@ public final class MainRDFHandler extends AbstractRDFHandler {
 	private Map<Integer,Map<Integer,Set<Integer>>> ops;
 	private Map<Integer,Map<Integer,Set<Integer>>> spo;
 	private int compteur;
-
 	public MainRDFHandler(Map<String, Integer> dico, Map<Integer, String> dicoReverse, Map<Integer, Map<Integer, Set<Integer>>> osp, Map<Integer, Map<Integer, Set<Integer>>> ops, Map<Integer, Map<Integer, Set<Integer>>> pos, Map<Integer, Map<Integer, Set<Integer>>> pso, Map<Integer, Map<Integer, Set<Integer>>> sop, Map<Integer, Map<Integer, Set<Integer>>> spo) {
 		this.dico = dico;
 		this.dicoReverse = dicoReverse;
