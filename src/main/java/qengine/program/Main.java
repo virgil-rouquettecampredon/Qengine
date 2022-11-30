@@ -43,6 +43,7 @@ public final class Main {
 	private static boolean useJena = false;
 	private static boolean warm = false;
 	private static boolean shuffle = false;
+	private static boolean exportQueryResults = false;
 
 	static KnowledgeBase knowledgeBase;
 
@@ -135,6 +136,7 @@ public final class Main {
 		System.out.println("-J, --Jena\n\tUse Jena to verify the answers, and check completeness");
 		System.out.println("-w, --warm\n\tPrint this message");
 		System.out.println("-s, --shuffle\n\tShuffle the queries before processing them");
+		System.out.println("e, --export-query-results\n\tExport the query results in the output folder");
 		System.out.println("-h, --help\n\tDisplay this message again");
 		System.exit(0);
 	}
@@ -190,6 +192,11 @@ public final class Main {
 				case "--shuffle":
 					System.out.println("Shuffling enabled");
 					shuffle = true;
+					break;
+				case "-e":
+				case "--export-query_results":
+					System.out.println("Exporting query results enabled");
+					exportQueryResults = true;
 					break;
 				case "-h":
 				case "--help":
@@ -293,28 +300,43 @@ public final class Main {
 			SPARQLParser sparqlParser = new SPARQLParser();
 			Iterator<String> lineIterator = lineStream.iterator();
 			StringBuilder queryString = new StringBuilder();
-			FileWriter file = new FileWriter(outputFolder + File.separator + dataFileName + "_" + queryFileName + "_results_" + System.currentTimeMillis() + ".csv");
-			file.append("DataBase  ,  NameRequest  ,  Result\n");
-			while (lineIterator.hasNext())
-			/*
-			 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
-			 * On considère alors que c'est la fin d'une requête
-			 */
-			{
-				String line = lineIterator.next();
-				queryString.append(line);
+			int queryCount = 0;
+			if(exportQueryResults) {
+				FileWriter file = new FileWriter(outputFolder + File.separator + dataFileName + "_" + queryFileName + "_results_" + System.currentTimeMillis() + ".csv");
+				file.append("DataBase  ,  NameRequest  ,  Result\n");
+				while (lineIterator.hasNext())
+					/*
+					 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
+					 * On considère alors que c'est la fin d'une requête
+					 */
+				{
+					String line = lineIterator.next();
+					queryString.append(line);
 
-				if (line.trim().endsWith("}")) {
-					ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
+					if (line.trim().endsWith("}")) {
+						ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
 
-					String result = processAQuery(query); // Traitement de la requête, à adapter/réécrire pour votre programme
+						String result = processAQuery(query); // Traitement de la requête, à adapter/réécrire pour votre programme
+						queryCount++;
 
-					file.append(result);
+						file.append(result);
 
-					queryString.setLength(0); // Reset le buffer de la requête en chaine vide
+						queryString.setLength(0); // Reset le buffer de la requête en chaine vide
+					}
+				}
+				file.close();
+			} else {
+				while (lineIterator.hasNext()) {
+					String line = lineIterator.next();
+					queryString.append(line);
+					if (line.trim().endsWith("}")) {
+						ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
+						processAQuery(query); // Traitement de la requête, à adapter/réécrire pour votre programme
+						queryCount++;
+						queryString.setLength(0); // Reset le buffer de la requête en chaine vide
+					}
 				}
 			}
-			file.close();
 		}
 		//TODO: Calculer le temps total d'évaluation du workload, et le temps total du programme, et les écrire dans le fichier en ms
 	}
