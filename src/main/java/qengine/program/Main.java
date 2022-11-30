@@ -237,7 +237,12 @@ public final class Main {
 		System.out.println("Queries loaded");
 		System.out.println("Time to parse data: " + duration/1000000 + "ms");
 		Model model = parseDataJena();
-		parseQueriesJena(null, model);
+		for (File file : listOfFiles) {
+			if (file.isFile() && file.getName().endsWith(".queryset")) {
+				parseAFile(queryFolder + File.separator + file.getName(), model);
+				//System.out.println("==============ANOTHER FILE==============");
+			}
+		}
 	}
 
 	// ========================================================================
@@ -297,6 +302,33 @@ public final class Main {
 		//TODO: Calculer le temps total d'évaluation du workload, et le temps total du programme, et les écrire dans le fichier en ms
 	}
 
+	//function that parse a file to call function parseQueriesJena for each query
+	public static void parseAFile(String queryFile, Model model) throws FileNotFoundException, IOException {
+		try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
+			SPARQLParser sparqlParser = new SPARQLParser();
+			Iterator<String> lineIterator = lineStream.iterator();
+			StringBuilder queryString = new StringBuilder();
+			//create a folder to store the results if it doesn't exist
+			while (lineIterator.hasNext())
+				/*
+				 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
+				 * On considère alors que c'est la fin d'une requête
+				 */
+			{
+				String line = lineIterator.next();
+				queryString.append(line);
+
+				if (line.trim().endsWith("}")) {
+
+					parseQueriesJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
+
+					queryString.setLength(0); // Reset le buffer de la requête en chaine vide
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 	//Use jena to create a model from the data file
 	public static Model parseDataJena() throws FileNotFoundException, IOException {
 		//Create a model
@@ -329,20 +361,23 @@ public final class Main {
 	}
 
 	//use Jena to answer a multiply query in a query folder
-	public static void parseQueriesJena(String queryFolder, Model model) throws FileNotFoundException, IOException {
+	public static void parseQueriesJena(String queryFile, Model model) throws FileNotFoundException, IOException {
 		//TODO: Parcourir tous les fichiers de requêtes dans le dossier
+
 		//TODO: Parcourir chaque requête dans le fichier
 
-		String queryString = "SELECT ?v0 WHERE {\n" +
-				"\t?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country137> . }";
-		Query query = QueryFactory.create(queryString) ;
+		Query query = QueryFactory.create(queryFile) ;
 		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
-			ResultSet results = qexec.execSelect() ;
-			for ( ; results.hasNext() ; )
-			{
-				QuerySolution soln = results.nextSolution() ;
-				System.out.println(soln.get("v0"));
+			ResultSet results = qexec.execSelect();
+			if (!results.hasNext()) {
+				System.out.println("No answer");
+			} else {
+				while(results.hasNext()) {
+					QuerySolution soln = results.nextSolution();
+					System.out.println(soln.get("v0"));
+				}
 			}
+			System.out.println("Done");
 		}
 
 	}
