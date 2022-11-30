@@ -3,6 +3,7 @@ package qengine.program;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -52,7 +53,7 @@ public final class Main {
 	/**
 	 * Méthode utilisée ici lors du parsing de requête sparql pour agir sur l'objet obtenu.
 	 */
-	public static void processAQuery(ParsedQuery query, FileWriter file) {
+	public static String processAQuery(ParsedQuery query) {
 		//System.out.println("Query: " + query);
 		List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
 
@@ -92,29 +93,21 @@ public final class Main {
 
 		//System.out.println("}");
 		request += "}";
+		String result = "";
 		if (answers.isEmpty()) {
 			//System.out.println("No answer\n");
-			try {
-				file.append(dataFile + "  ,  " + request + "  ,  " + "No answer\n");
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			result += (dataFile + "  ,  " + request + "  ,  " + "No answer\n");
 		}
 		else {
 			//System.out.println("Answers:");
 			for (Integer answer : answers) {
-				//System.out.println("\t" + knowledgeBase.getDicoReverse().get(answer));
-				try {
-					file.append(dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				result += (dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
 			}
 			//System.out.println();
 		}
 		//System.out.println("first pattern : " + patterns.get(0));
 
-
+		return result;
 
 		//Retourne le 3eme élément de la branche d'une requête
 		//System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
@@ -185,14 +178,17 @@ public final class Main {
 					break;
 				case "-J":
 				case "--Jena":
+					System.out.println("Jena enabled");
 					useJena = true;
 					break;
 				case "-w":
 				case "--warm":
+					System.out.println("Warming up enabled");
 					warm = true;
 					break;
 				case "-s":
 				case "--shuffle":
+					System.out.println("Shuffling enabled");
 					shuffle = true;
 					break;
 				case "-h":
@@ -216,32 +212,53 @@ public final class Main {
 		// Reading parameters
 		processArguments(args);
 
+		//Create the output folder
+		File fOutput = new File(outputFolder);
+		if (!fOutput.exists()) {
+			try {
+				fOutput.mkdir();
+			} catch (Exception se) {
+				System.err.println("Could not create the output folder");
+				throw se;
+			}
+		}
+
 		//Start timer
-		long startTime = System.nanoTime();
+		long startTime = System.currentTimeMillis();
 		//Read the knowledge base
 		System.out.println("Loading the knowledge base...");
 		parseData();
 		System.out.println("Knowledge base loaded");
-		long endTime = System.nanoTime();
+		long endTime = System.currentTimeMillis();
 		long duration = (endTime - startTime);
+		System.out.println("Loading time : " + duration + " ms");
 		System.out.println("Loading the queries...");
+		startTime = System.currentTimeMillis();
 		//List all files in the query folder
 		File folder = new File(queryFolder);
 		File[] listOfFiles = folder.listFiles();
 		//Read the queries
+		Model modelJena = null;
+		if (useJena) modelJena = parseDataJena();
 		for (File file : listOfFiles) {
 			if (file.isFile() && file.getName().endsWith(".queryset")) {
 				parseQueries(queryFolder + File.separator + file.getName());
 			}
 		}
 		System.out.println("Queries loaded");
-		System.out.println("Time to parse data: " + duration/1000000 + "ms");
-		Model model = parseDataJena();
-		for (File file : listOfFiles) {
-			if (file.isFile() && file.getName().endsWith(".queryset")) {
-				parseAFile(queryFolder + File.separator + file.getName(), model);
-				//System.out.println("==============ANOTHER FILE==============");
+		endTime = System.currentTimeMillis();
+		System.out.println("Loading time : " + (endTime - startTime) + " ms");
+
+		if (useJena) {
+			System.out.println("Verifying the answers...");
+			startTime = System.currentTimeMillis();
+			for(File file : listOfFiles) {
+				if (file.isFile() && file.getName().endsWith(".queryset")) {
+					parseQueriesJena(queryFolder + File.separator + file.getName(), modelJena);
+				}
 			}
+			endTime = System.currentTimeMillis();
+			System.out.println("Verification time : " + (endTime - startTime) + " ms");
 		}
 	}
 
@@ -250,7 +267,7 @@ public final class Main {
 	/**
 	 * Traite chaque requête lue dans {@link #queryFolder} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
 	 */
-	public static void parseQueries(String queryFile) throws FileNotFoundException, IOException {
+	public static void parseQueries(String queryFile) throws IOException {
 		/**
 		 * Try-with-resources
 		 * 
@@ -260,7 +277,15 @@ public final class Main {
 		 * On utilise un stream pour lire les lignes une par une, sans avoir à toutes les stocker
 		 * entièrement dans une collection.
 		 */
-		FileWriter fileTiming = new FileWriter("resultsTiming.csv");
+		//Get the name of the query file
+		File f = new File(queryFile);
+		//Get name without extension
+		String queryFileName = f.getName().substring(0, f.getName().lastIndexOf('.'));
+		File fData = new File(dataFile);
+		String dataFileName = fData.getName().substring(0, fData.getName().lastIndexOf('.'));
+
+		System.out.println("Processing " + queryFileName);
+		FileWriter fileTiming = new FileWriter(outputFolder + File.separator + dataFileName + "_stats_" + System.currentTimeMillis() + ".csv");
 		fileTiming.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total (du début à la fin du programme) (ms)\n");
 		// le nombre d'index et le nombre d'index créés donc 6 ici
 		//TODO: Parcourir tous les fichiers de requêtes dans le dossier
@@ -268,17 +293,7 @@ public final class Main {
 			SPARQLParser sparqlParser = new SPARQLParser();
 			Iterator<String> lineIterator = lineStream.iterator();
 			StringBuilder queryString = new StringBuilder();
-			//create a folder to store the results if it doesn't exist
-			File folder = new File(outputFolder);
-			if (!folder.exists()) {
-				try {
-					folder.mkdir();
-				} catch (Exception se) {
-					System.err.println("Could not create the output folder");
-					throw se;
-				}
-			}
-			FileWriter file = new FileWriter(outputFolder + File.separator + "results.csv");
+			FileWriter file = new FileWriter(outputFolder + File.separator + dataFileName + "_" + queryFileName + "_results_" + System.currentTimeMillis() + ".csv");
 			file.append("DataBase  ,  NameRequest  ,  Result\n");
 			while (lineIterator.hasNext())
 			/*
@@ -292,7 +307,9 @@ public final class Main {
 				if (line.trim().endsWith("}")) {
 					ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
 
-					processAQuery(query, file); // Traitement de la requête, à adapter/réécrire pour votre programme
+					String result = processAQuery(query); // Traitement de la requête, à adapter/réécrire pour votre programme
+
+					file.append(result);
 
 					queryString.setLength(0); // Reset le buffer de la requête en chaine vide
 				}
@@ -303,7 +320,7 @@ public final class Main {
 	}
 
 	//function that parse a file to call function parseQueriesJena for each query
-	public static void parseAFile(String queryFile, Model model) throws FileNotFoundException, IOException {
+	public static void parseQueriesJena(String queryFile, Model model) throws FileNotFoundException, IOException {
 		try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
 			SPARQLParser sparqlParser = new SPARQLParser();
 			Iterator<String> lineIterator = lineStream.iterator();
@@ -320,7 +337,7 @@ public final class Main {
 
 				if (line.trim().endsWith("}")) {
 
-					parseQueriesJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
+					processAQueryJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
 
 					queryString.setLength(0); // Reset le buffer de la requête en chaine vide
 				}
@@ -361,13 +378,13 @@ public final class Main {
 	}
 
 	//use Jena to answer a multiply query in a query folder
-	public static void parseQueriesJena(String queryFile, Model model) throws FileNotFoundException, IOException {
+	public static void processAQueryJena(String query, Model model) throws FileNotFoundException, IOException {
 		//TODO: Parcourir tous les fichiers de requêtes dans le dossier
 
 		//TODO: Parcourir chaque requête dans le fichier
 
-		Query query = QueryFactory.create(queryFile) ;
-		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+		Query queryJena = QueryFactory.create(query) ;
+		try (QueryExecution qexec = QueryExecutionFactory.create(queryJena, model)) {
 			ResultSet results = qexec.execSelect();
 			if (!results.hasNext()) {
 				System.out.println("No answer");
