@@ -6,7 +6,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
-import org.eclipse.rdf4j.query.algebra.In;
+import org.apache.jena.query.*;
+import org.apache.jena.rdf.model.*;
 import org.eclipse.rdf4j.query.algebra.Projection;
 import org.eclipse.rdf4j.query.algebra.StatementPattern;
 import org.eclipse.rdf4j.query.algebra.helpers.AbstractQueryModelVisitor;
@@ -235,12 +236,14 @@ public final class Main {
 		}
 		System.out.println("Queries loaded");
 		System.out.println("Time to parse data: " + duration/1000000 + "ms");
+		Model model = parseDataJena();
+		parseQueriesJena(null, model);
 	}
 
 	// ========================================================================
 
 	/**
-	 * Traite chaque requête lue dans {@link #queryFile} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
+	 * Traite chaque requête lue dans {@link #queryFolder} avec {@link #processAQuery(ParsedQuery, FileWriter)}.
 	 */
 	public static void parseQueries(String queryFile) throws FileNotFoundException, IOException {
 		/**
@@ -252,6 +255,10 @@ public final class Main {
 		 * On utilise un stream pour lire les lignes une par une, sans avoir à toutes les stocker
 		 * entièrement dans une collection.
 		 */
+		FileWriter fileTiming = new FileWriter("resultsTiming.csv");
+		fileTiming.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total (du début à la fin du programme) (ms)\n");
+		// le nombre d'index et le nombre d'index créés donc 6 ici
+		//TODO: Parcourir tous les fichiers de requêtes dans le dossier
 		try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
 			SPARQLParser sparqlParser = new SPARQLParser();
 			Iterator<String> lineIterator = lineStream.iterator();
@@ -287,7 +294,56 @@ public final class Main {
 			}
 			file.close();
 		}
+		//TODO: Calculer le temps total d'évaluation du workload, et le temps total du programme, et les écrire dans le fichier en ms
 	}
+
+	//Use jena to create a model from the data file
+	public static Model parseDataJena() throws FileNotFoundException, IOException {
+		//Create a model
+		Model model = ModelFactory.createDefaultModel();
+		//Read the file
+		model.read(dataFile);
+
+		//display all the statements in the graph
+		/*StmtIterator iter = model.listStatements();
+		// print out the predicate, subject and object of each statement
+		while (iter.hasNext()) {
+			Statement stmt = iter.nextStatement();  // get next statement
+			Resource subject = stmt.getSubject();     // get the subject
+			Property predicate = stmt.getPredicate();   // get the predicate
+			RDFNode object = stmt.getObject();      // get the object
+			System.out.print(subject.toString());
+			System.out.print(" " + predicate.toString() + " ");
+			if (object instanceof Resource) {
+				System.out.print(object.toString());
+			} else {
+				// object is a literal
+				System.out.print(" \"" + object.toString() + "\"");
+			}
+			System.out.println(" .");
+		}*/
+
+		//display the model in format RDF/XML
+		//model.write(System.out);
+		return model;
+	}
+
+	//use Jena to answer a multiply query in a query folder
+	public static void parseQueriesJena(String queryFolder, Model model) throws FileNotFoundException, IOException {
+		String queryString = "SELECT ?v0 WHERE {\n" +
+				"\t?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country137> . }";
+		Query query = QueryFactory.create(queryString) ;
+		try (QueryExecution qexec = QueryExecutionFactory.create(query, model)) {
+			ResultSet results = qexec.execSelect() ;
+			for ( ; results.hasNext() ; )
+			{
+				QuerySolution soln = results.nextSolution() ;
+				System.out.println(soln.get("v0"));
+			}
+		}
+
+	}
+
 
 	/**
 	 * Traite chaque triple lu dans {@link #dataFile} avec {@link MainRDFHandler}.
