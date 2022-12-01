@@ -12,6 +12,7 @@ public class Benchmark {
     private long timeCreatingIndex;
     private long timeWorkload; //Process queries
     private long timeTotal;
+    private long timeWritingResults;
 
     public Benchmark() {
         this.nameDataFile = "";
@@ -25,6 +26,7 @@ public class Benchmark {
         this.timeCreatingIndex = 0;
         this.timeWorkload = 0;
         this.timeTotal = 0;
+        this.timeWritingResults = 0;
     }
 
     public String getNameDataFile() {
@@ -51,9 +53,7 @@ public class Benchmark {
         this.nbTriplets = nbTriplets;
     }
 
-    public int getNbQueries() {
-        return nbQueries;
-    }
+    public int getNbQueries() { return nbQueries; }
 
     public void setNbQueries(int nbQueries) {
         this.nbQueries = nbQueries;
@@ -71,9 +71,7 @@ public class Benchmark {
         return timeReadingQueries;
     }
 
-    public void setTimeReadingQueries(long timeReadingQueries) {
-        this.timeReadingQueries = timeReadingQueries;
-    }
+    public void setTimeReadingQueries(long timeReadingQueries) { this.timeReadingQueries = timeReadingQueries; }
 
     public long getTimeCreatingDico() {
         return timeCreatingDico;
@@ -115,8 +113,12 @@ public class Benchmark {
         this.timeTotal = timeTotal;
     }
 
+
+    public long getTimeWritingResults() { return timeWritingResults; }
+
+    public void setTimeWritingResults(long timeWritingResults) { this.timeWritingResults = timeWritingResults; }
     @Override
     public String toString() {
-        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeTotal +  "\n";
+        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal +  "\n";
     }
 }

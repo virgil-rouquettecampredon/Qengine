@@ -54,30 +54,20 @@ public final class Main {
      * Méthode utilisée ici lors du parsing de requête sparql pour agir sur l'objet obtenu.
      */
     public static String processAQuery(ParsedQuery query) {
-        //System.out.println("Query: " + query);
         List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
-
-        //TODO: Modif first pattern pour récupérer toutes les branches de la requête, actuellement il prend que la premiere
 
         Set<Integer> answers = new HashSet<>();
         boolean firstEmpty = true;
         String request = "";
         request += "SELECT ?v0 WHERE {";
-        //System.out.println(request);
         for (StatementPattern pattern : patterns) {
-			/*System.out.println("Pattern:");
-			System.out.print("Subject: " + pattern.getSubjectVar());
-			System.out.print("Predicate: " + pattern.getPredicateVar());
-			System.out.println("Object: " + pattern.getObjectVar());*/
-            //System.out.println("\t" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .");
-            request += "?" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .";
+			request += "?" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .";
 
             Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
             if (localAnswers.isEmpty()) {
                 answers = new HashSet<>();
                 break;
             }
-            //TODO: Si l'intersection des résultats est vide, on peut arrêter la boucle
             else if (firstEmpty) {
                 answers.addAll(localAnswers);
                 firstEmpty = false;
@@ -85,44 +75,23 @@ public final class Main {
                 answers.retainAll(localAnswers);
             }
 
-            if (answers.isEmpty() && !firstEmpty) {
+            if (answers.isEmpty()) {
                 break;
             }
         }
+		request += "}";
 
-        //System.out.println("}");
-        request += "}";
+
         String result = "";
         if (answers.isEmpty()) {
-            //System.out.println("No answer\n");
             result += (dataFile + "  ,  " + request + "  ,  " + "No answer\n");
         } else {
-            //System.out.println("Answers:");
             for (Integer answer : answers) {
                 result += (dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
             }
-            //System.out.println();
         }
-        //System.out.println("first pattern : " + patterns.get(0));
 
         return result;
-
-        //Retourne le 3eme élément de la branche d'une requête
-        //System.out.println("object of the first pattern : " + patterns.get(0).getObjectVar().getValue());
-
-        //Recupère le sujet de la requête
-        //System.out.println("variables to project : ");
-
-        //Affichage des résultats pour chaque requêtes
-
-
-        // Utilisation d'une classe anonyme
-		/*query.getTupleExpr().visit(new AbstractQueryModelVisitor<RuntimeException>() {
-
-			public void meet(Projection projection) {
-				//System.out.println(projection.getProjectionElemList().getElements());
-			}
-		});*/
     }
 
     private static void printHelp() {
@@ -188,7 +157,7 @@ public final class Main {
                     shuffle = true;
                     break;
                 case "-e":
-                case "--export-query_results":
+                case "--export-query-results":
                     System.out.println("Exporting query results enabled");
                     exportQueryResults = true;
                     break;
@@ -265,14 +234,24 @@ public final class Main {
 		System.out.println("Queries loaded");
         System.out.println("Loading time : " + (endTime - startTime) + " ms");
 
+		StringBuilder result = new StringBuilder();
 		System.out.println("Processing queries...");
 		startTime = System.currentTimeMillis();
 		//Process the queries
 		for (ParsedQuery query : queries) {
-			processAQuery(query);
+			result.append(processAQuery(query));
 		}
 		endTime = System.currentTimeMillis();
 		benchmark.setTimeWorkload(endTime - startTime);
+		if(exportQueryResults) {
+            startTime = System.currentTimeMillis();
+            FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_results.csv");
+            outputFile.append("DataBase  ,  NameRequest  ,  Result\n");
+            outputFile.write(result.toString());
+            outputFile.close();
+            endTime = System.currentTimeMillis();
+            benchmark.setTimeWritingResults(endTime - startTime);
+        }
 
 		Model modelJena = null;
         if (useJena) {
@@ -291,8 +270,10 @@ public final class Main {
 		long endTimeTotal = System.currentTimeMillis();
 		benchmark.setTimeTotal(endTimeTotal - startTimeTotal);
 
-		System.out.println("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total (du début à la fin du programme) (ms)");
-		System.out.println(benchmark);
+
+        FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_stats.csv");
+        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)");
+        outputFile.write(benchmark.toString());
     }
 
     // ========================================================================
@@ -368,28 +349,6 @@ public final class Main {
         Model model = ModelFactory.createDefaultModel();
         //Read the file
         model.read(dataFile);
-
-        //display all the statements in the graph
-		/*StmtIterator iter = model.listStatements();
-		// print out the predicate, subject and object of each statement
-		while (iter.hasNext()) {
-			Statement stmt = iter.nextStatement();  // get next statement
-			Resource subject = stmt.getSubject();     // get the subject
-			Property predicate = stmt.getPredicate();   // get the predicate
-			RDFNode object = stmt.getObject();      // get the object
-			System.out.print(subject.toString());
-			System.out.print(" " + predicate.toString() + " ");
-			if (object instanceof Resource) {
-				System.out.print(object.toString());
-			} else {
-				// object is a literal
-				System.out.print(" \"" + object.toString() + "\"");
-			}
-			System.out.println(" .");
-		}*/
-
-        //display the model in format RDF/XML
-        //model.write(System.out);
         return model;
     }
 
@@ -442,15 +401,6 @@ public final class Main {
 
             // Parsing et traitement de chaque triple par le handler
             rdfParser.parse(dataReader, baseURI);
-
-            //System.out.println("Dictionnaire : " + dictionnaire);
-            //System.out.println("DictionnaireReverse : " + dictionnaireReverse);
-			/*System.out.println("SPO : " + spoMap);
-			System.out.println("SOP : " + sopMap);
-			System.out.println("OSP : " + ospMap);
-			System.out.println("OPS : " + opsMap);
-			System.out.println("POS : " + posMap);
-			System.out.println("PSO : " + psoMap);*/
 
             knowledgeBase = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
 
