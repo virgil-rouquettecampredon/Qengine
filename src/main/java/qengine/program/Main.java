@@ -11,6 +11,7 @@ import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
 import org.eclipse.rdf4j.query.algebra.Projection;
 import org.eclipse.rdf4j.query.algebra.StatementPattern;
+import org.eclipse.rdf4j.query.algebra.Var;
 import org.eclipse.rdf4j.query.algebra.helpers.AbstractQueryModelVisitor;
 import org.eclipse.rdf4j.query.algebra.helpers.StatementPatternCollector;
 import org.eclipse.rdf4j.query.parser.ParsedQuery;
@@ -219,8 +220,7 @@ public final class Main {
         String request = "";
         request += "SELECT ?v0 WHERE {";
         for (StatementPattern pattern : patterns) {
-			request += "?" + pattern.getSubjectVar().getName() + " " + pattern.getPredicateVar().getValue() + " " + pattern.getObjectVar().getValue() + " .";
-
+			request += "?" + pattern.getSubjectVar().getName() + " <" + pattern.getPredicateVar().getValue() + "> " + (pattern.getObjectVar().getValue().isLiteral()?pattern.getObjectVar().getValue():("<"+pattern.getObjectVar().getValue()+">")) + " .";
             Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
             if (localAnswers.isEmpty()) {
                 answers = new HashSet<>();
@@ -240,23 +240,23 @@ public final class Main {
 		request += "}";
 
 
-        String result = "";
+        StringBuilder result = new StringBuilder();
         if (answers.isEmpty()) {
-            result += (dataFile + "  ,  " + request + "  ,  " + "No answer\n");
+            result.append(dataFile).append("  ,  ").append(request).append("  ,  ").append("No answer\n");
         } else {
             for (Integer answer : answers) {
-                result += (dataFile + "  ,  " + request + "  ,  " + knowledgeBase.getDicoReverse().get(answer) + "\n");
+                result.append(dataFile).append("  ,  ").append(request).append("  ,  ").append(knowledgeBase.getDicoReverse().get(answer)).append("\n");
             }
         }
 
-        return result;
+        return result.toString();
     }
 
     // ========================================================================
 
     //function that parse a file to call function parseQueriesJena for each query
     //Use jena to create a model from the data file
-    public static Model parseDataJena() throws FileNotFoundException, IOException {
+    public static Model parseDataJena() {
         //Create a model
         Model model = ModelFactory.createDefaultModel();
         //Read the file
@@ -264,52 +264,68 @@ public final class Main {
         return model;
     }
 
-    public static void parseQueriesJena(String queryFile, Model model) throws FileNotFoundException, IOException {
-        try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
-            SPARQLParser sparqlParser = new SPARQLParser();
-            Iterator<String> lineIterator = lineStream.iterator();
-            StringBuilder queryString = new StringBuilder();
-            //create a folder to store the results if it doesn't exist
-            while (lineIterator.hasNext())
-                /*
-                 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
-                 * On considère alors que c'est la fin d'une requête
-                 */ {
-                String line = lineIterator.next();
-                queryString.append(line);
-
-                if (line.trim().endsWith("}")) {
-
-                    processAQueryJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
-
-                    queryString.setLength(0); // Reset le buffer de la requête en chaine vide
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    public static void parseQueriesJena(String queryFile, Model model) {
+//        try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
+//            SPARQLParser sparqlParser = new SPARQLParser();
+//            Iterator<String> lineIterator = lineStream.iterator();
+//            StringBuilder queryString = new StringBuilder();
+//            //create a folder to store the results if it doesn't exist
+//            while (lineIterator.hasNext())
+//                /*
+//                 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
+//                 * On considère alors que c'est la fin d'une requête
+//                 */ {
+//                String line = lineIterator.next();
+//                queryString.append(line);
+//
+//                if (line.trim().endsWith("}")) {
+//
+//                    processAQueryJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
+//
+//                    queryString.setLength(0); // Reset le buffer de la requête en chaine vide
+//                }
+//            }
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     //use Jena to answer a multiply query in a query folder
-    public static void processAQueryJena(String query, Model model) throws FileNotFoundException, IOException {
-        //TODO: Parcourir tous les fichiers de requêtes dans le dossier
-
-        //TODO: Parcourir chaque requête dans le fichier
+    public static Set<String> processAQueryJena(String query, Model model) {
+        Set<String> answers = new HashSet<>();
 
         Query queryJena = QueryFactory.create(query);
         try (QueryExecution qexec = QueryExecutionFactory.create(queryJena, model)) {
             ResultSet results = qexec.execSelect();
             if (!results.hasNext()) {
-                System.out.println("No answer");
+                answers.add("No answer");
             } else {
                 while (results.hasNext()) {
                     QuerySolution soln = results.nextSolution();
-                    System.out.println(soln.get("v0"));
+                    answers.add(soln.get("v0").toString());
                 }
             }
-            System.out.println("Done");
         }
+        return answers;
+    }
 
+    public static boolean checkSoundAndComplete(ArrayList<ParsedQuery> queries) {
+        Model model = parseDataJena();
+        Set<String> resultSelf = null;
+        Set<String> resultJena = null;
+        String request = "";
+        for (ParsedQuery query : queries) {
+            resultSelf = new HashSet<>();
+            for(String result : processAQuery(query).split("\n")) {
+                resultSelf.add(result.split("  ,  ")[2]);
+                request = result.split("  ,  ")[1];
+            }
+            resultJena = processAQueryJena(request, model);
+            if (!resultSelf.equals(resultJena)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // ========================================================================
@@ -406,14 +422,9 @@ public final class Main {
 
         Model modelJena = null;
         if (useJena) {
-            modelJena = parseDataJena();
             System.out.println("Verifying the answers...");
             startTime = System.currentTimeMillis();
-            for (File file : listOfFiles) {
-                if (file.isFile() && file.getName().endsWith(".queryset")) {
-                    parseQueriesJena(queryFolder + File.separator + file.getName(), modelJena);
-                }
-            }
+            System.out.println(checkSoundAndComplete(queries)?"The answers are sound and complete":"The answers are incorrect");
             endTime = System.currentTimeMillis();
             System.out.println("Verification time : " + (endTime - startTime) + " ms");
         }
@@ -423,7 +434,8 @@ public final class Main {
 
 
         FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_stats.csv");
-        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)");
+        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)\n");
         outputFile.write(benchmark.toString());
+        outputFile.close();
     }
 }

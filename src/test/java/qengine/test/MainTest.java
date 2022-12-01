@@ -1,17 +1,24 @@
 package qengine.test;
 
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.rdf4j.query.parser.ParsedQuery;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import qengine.program.KnowledgeBase;
 import qengine.program.Main;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static qengine.program.Main.parseData;
-import static qengine.program.Main.parseQueries;
+import static qengine.program.Main.*;
 
 public class MainTest {
 
@@ -23,14 +30,26 @@ public class MainTest {
     static Map<Integer, Map<Integer, Set<Integer>>> osp;
     static Map<String, Integer> dico;
     static Map<Integer, String> dicoReverse;
+    static ArrayList<ParsedQuery> queries;
+    static File[] listOfFiles;
 
 
     @BeforeClass
     public static void setUp() throws Exception {
         Main main = new Main();
-        Main.main(new String[]{"-q", "queries", "-d", "data/100K.nt"});
+        String queryFolder = "queries";
+        Main.main(new String[]{"-q", queryFolder, "-d", "data/100K.nt"});
         KnowledgeBase knowledgeBase = main.parseData();
-        parseQueries("queries/STAR_ALL_workload.queryset");
+        //List all files in the query folder
+        File folder = new File(queryFolder);
+        listOfFiles = folder.listFiles();
+        queries = new ArrayList<>();
+        //Read the queries
+        for (File file : listOfFiles) {
+            if (file.isFile() && file.getName().endsWith(".queryset")) {
+                queries.addAll(parseQueries(queryFolder + File.separator + file.getName()));
+            }
+        }
 
         //Get all indexes from the knowledgeBase
         osp = knowledgeBase.getOsp();
@@ -126,5 +145,23 @@ public class MainTest {
         assertTrue(isSame);
     }
 
+    @Test
+    public void checkSoundnessAndCompleteness() {
+        assertTrue(checkSoundAndComplete(queries));
+    }
+
+    @Test
+    public void checkCorrectNumberOfQueries() throws IOException {
+        String fileString = "";
+        int cpt = 0;
+        for(File file : listOfFiles){
+            if(file.isFile() && file.getName().endsWith(".queryset")){
+                //Count how many times the keyword SELECT appears in file
+                fileString = new String(Files.readAllBytes(Paths.get(file.getPath())));
+                cpt += StringUtils.countMatches(fileString, "SELECT");
+            }
+        }
+        assertEquals(queries.size(), cpt);
+    }
 
 }
