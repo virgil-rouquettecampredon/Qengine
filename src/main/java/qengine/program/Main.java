@@ -57,7 +57,7 @@ public final class Main {
         System.out.println("-d --data <datafile>\n\tPath to the file containing the knowledge base");
         System.out.println("-o, --output <output_folder>\n\tSpecify the output file with --output <outputfile> (default is output)");
         System.out.println("-J, --Jena\n\tUse Jena to verify the answers, and check completeness");
-        System.out.println("-w, --warm\n\tPrint this message");
+        System.out.println("-w, --warm <int between 0 and 100>\n\tProcess the first <int> percent of the queries to warm up the cache");
         System.out.println("-s, --shuffle\n\tShuffle the queries before processing them");
         System.out.println("e, --export-query-results\n\tExport the query results in the output folder");
         System.out.println("-h, --help\n\tDisplay this message again");
