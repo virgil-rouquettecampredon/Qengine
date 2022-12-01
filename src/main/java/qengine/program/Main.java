@@ -43,6 +43,7 @@ public final class Main {
     private static String outputFolder = "output";
     private static boolean useJena = false;
     private static boolean warm = false;
+    private static int warmPercentage = 0;
     private static boolean shuffle = false;
     private static boolean exportQueryResults = false;
 
@@ -106,6 +107,21 @@ public final class Main {
                 case "--warm":
                     System.out.println("Warming up enabled");
                     warm = true;
+                    if (i + 1 < args.length) {
+                        try {
+                            warmPercentage = Integer.parseInt(args[i + 1]);
+                            if(warmPercentage < 0 || warmPercentage > 100) {
+                                System.err.println("Warm percentage must be between 0 and 100");
+                                printHelp();
+                            }
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid argument for " + args[i]);
+                            printHelp();
+                        }
+                    } else {
+                        System.err.println("Missing argument for " + args[i]);
+                        printHelp();
+                    }
                     break;
                 case "-s":
                 case "--shuffle":
@@ -165,10 +181,6 @@ public final class Main {
             return knowledgeBase;
 
         }
-
-        //TODO: ANALYSER LES QUERIES EN ETOILE (Dans sample_query.queryset), analyser chaque branche et l'enregistrer dans les structures dépolyées, puis faire la jointure des résultats
-        // En utilisant les données de la bdd, enregistrer
-        // Pour l'interpretation, faire l'interpretation de chaque branche, puis faire la jointure des résultats
     }
 
     /**
@@ -397,9 +409,26 @@ public final class Main {
         }
         endTime = System.currentTimeMillis();
         benchmark.setTimeReadingQueries(endTime - startTime);
-        benchmark.setNbQueries(queries.size());
         System.out.println("Queries loaded");
         System.out.println("Loading time : " + (endTime - startTime) + " ms");
+
+        if(shuffle) {
+            Collections.shuffle(queries);
+        }
+
+        if(warm) {
+            System.out.println("Warming up...");
+            startTime = System.currentTimeMillis();
+            //Try the first percentage warmPercentage of query
+            for (int i = 0; i < queries.size() * warmPercentage / 100; i++) {
+                processAQuery(queries.remove(i));
+            }
+            endTime = System.currentTimeMillis();
+            System.out.println("Warming up done");
+            System.out.println("Warming up time : " + (endTime - startTime) + " ms");
+        }
+
+        benchmark.setNbQueries(queries.size());
 
         StringBuilder result = new StringBuilder();
         System.out.println("Processing queries...");
@@ -420,7 +449,6 @@ public final class Main {
             benchmark.setTimeWritingResults(endTime - startTime);
         }
 
-        Model modelJena = null;
         if (useJena) {
             System.out.println("Verifying the answers...");
             startTime = System.currentTimeMillis();

@@ -32,13 +32,14 @@ public class MainTest {
     static Map<Integer, String> dicoReverse;
     static ArrayList<ParsedQuery> queries;
     static File[] listOfFiles;
+    static int defaultQueriesSize = 0;
 
 
     @BeforeClass
     public static void setUp() throws Exception {
         Main main = new Main();
         String queryFolder = "queries";
-        Main.main(new String[]{"-q", queryFolder, "-d", "data/100K.nt"});
+        Main.main(new String[]{"-q", queryFolder, "-d", "data/100K.nt", "-w", "10", "-s"});
         KnowledgeBase knowledgeBase = main.parseData();
         //List all files in the query folder
         File folder = new File(queryFolder);
@@ -50,6 +51,7 @@ public class MainTest {
                 queries.addAll(parseQueries(queryFolder + File.separator + file.getName()));
             }
         }
+        defaultQueriesSize = queries.size();
 
         //Get all indexes from the knowledgeBase
         osp = knowledgeBase.getOsp();
@@ -161,7 +163,7 @@ public class MainTest {
                 cpt += StringUtils.countMatches(fileString, "SELECT");
             }
         }
-        assertEquals(queries.size(), cpt);
+        assertEquals(defaultQueriesSize, cpt);
     }
 
 }
