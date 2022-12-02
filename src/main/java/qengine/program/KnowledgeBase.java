@@ -7,8 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class KnowledgeBase {
-    private Map<String, Integer> dico;
-    private Map<Integer, String> dicoReverse;
+    private Dictionnaire dictionnaire;
     private Map<Integer, Map<Integer, Set<Integer>>> osp;
     private Map<Integer, Map<Integer, Set<Integer>>> ops;
     private Map<Integer, Map<Integer, Set<Integer>>> pos;
@@ -16,9 +15,8 @@ public class KnowledgeBase {
     private Map<Integer, Map<Integer, Set<Integer>>> sop;
     private Map<Integer, Map<Integer, Set<Integer>>> spo;
 
-    public KnowledgeBase(Map<String, Integer> dico, Map<Integer, String> dicoReverse, Map<Integer, Map<Integer, Set<Integer>>> osp, Map<Integer, Map<Integer, Set<Integer>>> ops, Map<Integer, Map<Integer, Set<Integer>>> pos, Map<Integer, Map<Integer, Set<Integer>>> pso, Map<Integer, Map<Integer, Set<Integer>>> sop, Map<Integer, Map<Integer, Set<Integer>>> spo) {
-        this.dico = dico;
-        this.dicoReverse = dicoReverse;
+    public KnowledgeBase(Dictionnaire dictionnaire, Map<Integer, Map<Integer, Set<Integer>>> osp, Map<Integer, Map<Integer, Set<Integer>>> ops, Map<Integer, Map<Integer, Set<Integer>>> pos, Map<Integer, Map<Integer, Set<Integer>>> pso, Map<Integer, Map<Integer, Set<Integer>>> sop, Map<Integer, Map<Integer, Set<Integer>>> spo) {
+        this.dictionnaire = dictionnaire;
         this.osp = osp;
         this.ops = ops;
         this.pos = pos;
@@ -28,11 +26,11 @@ public class KnowledgeBase {
     }
 
     public Map<String, Integer> getDico() {
-        return dico;
+        return dictionnaire.getDico();
     }
 
     public Map<Integer, String> getDicoReverse() {
-        return dicoReverse;
+        return dictionnaire.getDicoReverse();
     }
 
     public Map<Integer, Map<Integer, Set<Integer>>> getOsp() {
@@ -66,8 +64,8 @@ public class KnowledgeBase {
         //System.out.println("predicate = " + predicate);
         //System.out.println("object = " + object);
         try {
-            int predicateId = dico.get(predicate);
-            int objectId = dico.get(object);
+            int predicateId = dictionnaire.getEntry(predicate);
+            int objectId = dictionnaire.getEntry(object);
             //System.out.println("predicateId = " + predicateId);
             //System.out.println("objectId = " + objectId);
             Set<Integer> answers = pos.get(predicateId).get(objectId);

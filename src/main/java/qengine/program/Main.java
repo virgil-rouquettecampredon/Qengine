@@ -156,8 +156,7 @@ public final class Main {
 
         try (Reader dataReader = new FileReader(dataFile)) {
             //Creation du HashMap<Integer, String> pour les creer le dictionnaire
-            Map<String, Integer> dictionnaire = new HashMap<>();
-            Map<Integer, String> dictionnaireReverse = new HashMap<>();
+            Dictionnaire dictionnaire = new Dictionnaire();
 
             //Creation des index des la bdd
             Map<Integer, Map<Integer, Set<Integer>>> ospMap = new HashMap<>();
@@ -171,12 +170,12 @@ public final class Main {
             RDFParser rdfParser = Rio.createParser(RDFFormat.NTRIPLES);
 
             // On utilise notre implémentation de handler
-            rdfParser.setRDFHandler(new MainRDFHandler(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap));
+            rdfParser.setRDFHandler(new MainRDFHandler(dictionnaire, ospMap, opsMap, posMap, psoMap, sopMap, spoMap));
 
             // Parsing et traitement de chaque triple par le handler
             rdfParser.parse(dataReader, baseURI);
 
-            knowledgeBase = new KnowledgeBase(dictionnaire, dictionnaireReverse, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
+            knowledgeBase = new KnowledgeBase(dictionnaire, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
 
             return knowledgeBase;
 
