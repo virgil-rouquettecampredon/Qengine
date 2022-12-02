@@ -420,8 +420,10 @@ public final class Main {
             System.out.println("Warming up...");
             startTime = System.currentTimeMillis();
             //Try the first percentage warmPercentage of query
-            for (int i = 0; i < queries.size() * warmPercentage / 100; i++) {
-                processAQuery(queries.remove(i));
+            int nbQueries = queries.size();
+            for (int i = 0; i < nbQueries * warmPercentage / 100; i++) {
+                int random = (int) (Math.random() * queries.size());
+                processAQuery(queries.remove(random));
             }
             endTime = System.currentTimeMillis();
             System.out.println("Warming up done");
