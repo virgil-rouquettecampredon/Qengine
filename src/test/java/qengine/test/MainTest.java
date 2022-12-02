@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.query.parser.ParsedQuery;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import qengine.program.Dictionnaire;
 import qengine.program.KnowledgeBase;
 import qengine.program.Main;
 
@@ -41,7 +42,9 @@ public class MainTest {
         Main main = new Main();
         String queryFolder = "queries";
         Main.main(new String[]{"-q", queryFolder, "-d", "data/100K.nt", "-w", "10", "-s"});
-        KnowledgeBase knowledgeBase = main.parseData();
+        ArrayList<String> tuples = main.parseData();
+        Dictionnaire dictionnaire = main.creatingDictionnary(tuples);
+        KnowledgeBase knowledgeBase = main.creatingIndex(tuples, dictionnaire);
         //List all files in the query folder
         File folder = new File(queryFolder);
         listOfFiles = folder.listFiles();
@@ -57,18 +60,21 @@ public class MainTest {
         defaultQueriesSize = queries.size();
 
         //Get all indexes from the knowledgeBase
-        osp = knowledgeBase.getOsp();
+        osp = knowledgeBase.getOsp().getIndex();
         System.out.println("osp: " + osp.size());
-        ops = knowledgeBase.getOps();
+        ops = knowledgeBase.getOps().getIndex();
         System.out.println("ops: " + ops.size());
-        pos = knowledgeBase.getPos();
+        pos = knowledgeBase.getPos().getIndex();
         System.out.println("pos: " + pos.size());
-        pso = knowledgeBase.getPso();
+        pso = knowledgeBase.getPso().getIndex();
         System.out.println("pso: " + pso.size());
-        sop = knowledgeBase.getSop();
+        sop = knowledgeBase.getSop().getIndex();
         System.out.println("sop: " + sop.size());
-        spo = knowledgeBase.getSpo();
+        spo = knowledgeBase.getSpo().getIndex();
         System.out.println("spo: " + spo.size());
+
+        //System.out.println(pso);
+        //System.out.println(spo);
 
         //Get all dictionnaries from the knowledgeBase
         dico = knowledgeBase.getDico();
@@ -108,6 +114,7 @@ public class MainTest {
 
                 Set<Integer> objectSPO = spo.get(subject).get(predicate);
                 if (!objectPSO.equals(objectSPO)) {
+                    //System.out.println("subject: " + subject + " predicate: " + predicate + " objectPSO: " + dicoReverse.get(o) + " objectSPO: " + objectSPO);
                     objectIsSame = false;
                 }
             }

@@ -152,34 +152,61 @@ public final class Main {
     /**
      * Traite chaque triple lu dans {@link #dataFile} avec {@link MainRDFHandler}.
      */
-    public static KnowledgeBase parseData() throws FileNotFoundException, IOException {
+    public static ArrayList<String> parseData() throws FileNotFoundException, IOException {
 
         try (Reader dataReader = new FileReader(dataFile)) {
             //Creation du HashMap<Integer, String> pour les creer le dictionnaire
-            Dictionnaire dictionnaire = new Dictionnaire();
 
-            //Creation des index des la bdd
-            Map<Integer, Map<Integer, Set<Integer>>> ospMap = new HashMap<>();
-            Map<Integer, Map<Integer, Set<Integer>>> opsMap = new HashMap<>();
-            Map<Integer, Map<Integer, Set<Integer>>> posMap = new HashMap<>();
-            Map<Integer, Map<Integer, Set<Integer>>> psoMap = new HashMap<>();
-            Map<Integer, Map<Integer, Set<Integer>>> sopMap = new HashMap<>();
-            Map<Integer, Map<Integer, Set<Integer>>> spoMap = new HashMap<>();
-
+            ArrayList<String> tuples = new ArrayList<>();
             // On va parser des données au format ntriples
             RDFParser rdfParser = Rio.createParser(RDFFormat.NTRIPLES);
 
             // On utilise notre implémentation de handler
-            rdfParser.setRDFHandler(new MainRDFHandler(dictionnaire, ospMap, opsMap, posMap, psoMap, sopMap, spoMap));
+            rdfParser.setRDFHandler(new MainRDFHandler(tuples));
 
             // Parsing et traitement de chaque triple par le handler
             rdfParser.parse(dataReader, baseURI);
 
-            knowledgeBase = new KnowledgeBase(dictionnaire, ospMap, opsMap, posMap, psoMap, sopMap, spoMap);
-
-            return knowledgeBase;
+            return tuples;
 
         }
+    }
+
+    public static Dictionnaire creatingDictionnary(ArrayList<String> tuples) {
+        Dictionnaire dictionnaire = new Dictionnaire();
+        for (String tuple : tuples) {
+            String[] split = tuple.split(" ");
+            dictionnaire.add(split[0]);
+            dictionnaire.add(split[1]);
+            dictionnaire.add(split[2]);
+        }
+        return dictionnaire;
+    }
+
+    public static KnowledgeBase creatingIndex(ArrayList<String> tuples, Dictionnaire dictionnaire) {
+        Index pso = new Index();
+        Index pos = new Index();
+        Index osp = new Index();
+        Index ops = new Index();
+        Index sop = new Index();
+        Index spo = new Index();
+
+        for (String tuple : tuples) {
+            String[] split = tuple.split(" ");
+            //System.out.println(split[0] + " " + split[1] + " " + split[2]);
+            String subject = split[0];
+            String predicate = split[1];
+            String object = split[2];
+
+            spo.addTriple(dictionnaire.getEntry(subject), dictionnaire.getEntry(predicate), dictionnaire.getEntry(object));
+            sop.addTriple(dictionnaire.getEntry(subject), dictionnaire.getEntry(object), dictionnaire.getEntry(predicate));
+            pso.addTriple(dictionnaire.getEntry(predicate), dictionnaire.getEntry(subject), dictionnaire.getEntry(object));
+            pos.addTriple(dictionnaire.getEntry(predicate), dictionnaire.getEntry(object), dictionnaire.getEntry(subject));
+            osp.addTriple(dictionnaire.getEntry(object), dictionnaire.getEntry(subject), dictionnaire.getEntry(predicate));
+            ops.addTriple(dictionnaire.getEntry(object), dictionnaire.getEntry(predicate), dictionnaire.getEntry(subject));
+
+            }
+        return new KnowledgeBase(dictionnaire,osp, pos, sop, spo, ops, pso);
     }
 
     /**
@@ -236,10 +263,7 @@ public final class Main {
 
         Set<Integer> answers = new HashSet<>();
         boolean firstEmpty = true;
-        String request = "";
-        request += "SELECT ?v0 WHERE {";
         for (StatementPattern pattern : patterns) {
-			request += "?" + pattern.getSubjectVar().getName() + " <" + pattern.getPredicateVar().getValue() + "> " + (pattern.getObjectVar().getValue().isLiteral()?pattern.getObjectVar().getValue():("<"+pattern.getObjectVar().getValue()+">")) + " .";
             Set<Integer> localAnswers = knowledgeBase.getAnswers(pattern);
             if (localAnswers.isEmpty()) {
                 answers = new HashSet<>();
@@ -256,8 +280,6 @@ public final class Main {
                 break;
             }
         }
-		request += "}";
-
         Set<String> answersString = new HashSet<>();
         if (answers.isEmpty()) {
             answersString.add("No answer");
@@ -338,6 +360,9 @@ public final class Main {
             resultSelf = processAQuery(parsedQueries.get(i));
             resultJena = processAQueryJena(queries.get(i), model);
             if (!resultSelf.equals(resultJena)) {
+                System.out.println("The query " + queries.get(i) + " is not sound and complete " + i);
+                //System.out.println("result of self: " + resultSelf);
+                //System.out.println("result of jena: " + resultJena);
                 return false;
             }
         }
@@ -386,18 +411,25 @@ public final class Main {
         //Read the knowledge base
         System.out.println("Loading the knowledge base...");
         long startTime = System.currentTimeMillis();
-        parseData();
+        ArrayList<String> tuples = parseData();
         long endTime = System.currentTimeMillis();
         System.out.println("Knowledge base loaded");
         benchmark.setTimeReadingData(endTime - startTime);
         //TODO : Faut-il réellement découpler index et dico ?
         //TODO : Qu'est-ce que c'est timeReadingData ?
-        benchmark.setTimeCreatingDico(endTime - startTime);
-        benchmark.setTimeCreatingIndex(endTime - startTime);
+        long startTimeDictionnaire = System.currentTimeMillis();
+        Dictionnaire dictionnaire = creatingDictionnary(tuples);
+        long endTimeDictionnaire = System.currentTimeMillis();
+        benchmark.setTimeCreatingDico(endTimeDictionnaire - startTimeDictionnaire);
+        System.out.println("Dictionnaire created");
+        long startTimeIndex = System.currentTimeMillis();
+        knowledgeBase = creatingIndex(tuples, dictionnaire);
+        long endTimeIndex = System.currentTimeMillis();
+        benchmark.setTimeCreatingIndex(endTimeIndex - startTimeIndex);
         benchmark.setNbIndex(6);
 
         System.out.println("Loading time : " + (endTime - startTime) + " ms");
-        countTriplets(knowledgeBase.getPos(), benchmark);
+        countTriplets(knowledgeBase.getPos().getIndex(), benchmark);
         System.out.println("Loading the queries...");
 
         //List all files in the query folder
