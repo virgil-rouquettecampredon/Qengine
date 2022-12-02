@@ -186,7 +186,7 @@ public final class Main {
     /**
      * Traite chaque requête lue dans {@link #queryFolder} avec {@link #processAQuery(ParsedQuery)}.
      */
-    public static ArrayList<ParsedQuery> parseQueries(String queryFile) throws IOException {
+    public static ArrayList<String> parseQueries(String queryFile) throws IOException {
         /**
          * Try-with-resources
          *
@@ -197,12 +197,11 @@ public final class Main {
          * entièrement dans une collection.
          */
 
-        ArrayList<ParsedQuery> queries = new ArrayList<>();
+        ArrayList<String> queries = new ArrayList<>();
 
         System.out.println("Reading " + queryFile);
         // le nombre d'index et le nombre d'index créés donc 6 ici
         try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
-            SPARQLParser sparqlParser = new SPARQLParser();
             Iterator<String> lineIterator = lineStream.iterator();
             StringBuilder queryString = new StringBuilder();
             {
@@ -210,8 +209,7 @@ public final class Main {
                     String line = lineIterator.next();
                     queryString.append(line);
                     if (line.trim().endsWith("}")) {
-                        ParsedQuery query = sparqlParser.parseQuery(queryString.toString(), baseURI);
-                        queries.add(query);
+                        queries.add(queryString.toString());
                         queryString.setLength(0); // Reset le buffer de la requête en chaine vide
                     }
                 }
@@ -221,10 +219,20 @@ public final class Main {
         return queries;
     }
 
+    public static ArrayList<ParsedQuery> transformQueriesIntoParsedQueries(ArrayList<String> queries) {
+        ArrayList<ParsedQuery> parsedQueries = new ArrayList<>();
+        SPARQLParser sparqlParser = new SPARQLParser();
+        for (String query : queries) {
+            ParsedQuery parsedQuery = sparqlParser.parseQuery(query, baseURI);
+            parsedQueries.add(parsedQuery);
+        }
+        return parsedQueries;
+    }
+
     /**
      * Méthode utilisée ici lors du parsing de requête sparql pour agir sur l'objet obtenu.
      */
-    public static String processAQuery(ParsedQuery query) {
+    public static Set<String> processAQuery(ParsedQuery query) {
         List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
 
         Set<Integer> answers = new HashSet<>();
@@ -251,17 +259,17 @@ public final class Main {
         }
 		request += "}";
 
-
-        StringBuilder result = new StringBuilder();
+        Set<String> answersString = new HashSet<>();
         if (answers.isEmpty()) {
-            result.append(dataFile).append("  ,  ").append(request).append("  ,  ").append("No answer\n");
+            answersString.add("No answer");
+            return answersString;
         } else {
             for (Integer answer : answers) {
-                result.append(dataFile).append("  ,  ").append(request).append("  ,  ").append(knowledgeBase.getDicoReverse().get(answer)).append("\n");
+                answersString.add(knowledgeBase.getDicoReverse().get(answer));
             }
+            return answersString;
         }
 
-        return result.toString();
     }
 
     // ========================================================================
@@ -321,18 +329,15 @@ public final class Main {
         return answers;
     }
 
-    public static boolean checkSoundAndComplete(ArrayList<ParsedQuery> queries) {
+    public static boolean checkSoundAndComplete(ArrayList<String> queries, ArrayList<ParsedQuery> parsedQueries) {
         Model model = parseDataJena();
         Set<String> resultSelf = null;
         Set<String> resultJena = null;
         String request = "";
-        for (ParsedQuery query : queries) {
-            resultSelf = new HashSet<>();
-            for(String result : processAQuery(query).split("\n")) {
-                resultSelf.add(result.split("  ,  ")[2]);
-                request = result.split("  ,  ")[1];
-            }
-            resultJena = processAQueryJena(request, model);
+
+        for (int i = 0; i < queries.size(); i++) {
+            resultSelf = processAQuery(parsedQueries.get(i));
+            resultJena = processAQueryJena(queries.get(i), model);
             if (!resultSelf.equals(resultJena)) {
                 return false;
             }
@@ -400,11 +405,12 @@ public final class Main {
         File folder = new File(queryFolder);
         File[] listOfFiles = folder.listFiles();
         ArrayList<ParsedQuery> queries = new ArrayList<>();
+        ArrayList<String> queriesString = new ArrayList<>();
         //Read the queries
         startTime = System.currentTimeMillis();
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().endsWith(".queryset")) {
-                queries.addAll(parseQueries(queryFolder + File.separator + file.getName()));
+                queriesString.addAll(parseQueries(queryFolder + File.separator + file.getName()));
             }
         }
         endTime = System.currentTimeMillis();
@@ -413,8 +419,10 @@ public final class Main {
         System.out.println("Loading time : " + (endTime - startTime) + " ms");
 
         if(shuffle) {
-            Collections.shuffle(queries);
+            Collections.shuffle(queriesString);
         }
+
+        queries = transformQueriesIntoParsedQueries(queriesString);
 
         if(warm) {
             System.out.println("Warming up...");
@@ -424,6 +432,7 @@ public final class Main {
             for (int i = 0; i < nbQueries * warmPercentage / 100; i++) {
                 int random = (int) (Math.random() * queries.size());
                 processAQuery(queries.remove(random));
+                queriesString.remove(random);
             }
             endTime = System.currentTimeMillis();
             System.out.println("Warming up done");
@@ -432,12 +441,12 @@ public final class Main {
 
         benchmark.setNbQueries(queries.size());
 
-        StringBuilder result = new StringBuilder();
+        ArrayList<Set<String>> result = new ArrayList<>();
         System.out.println("Processing queries...");
         startTime = System.currentTimeMillis();
         //Process the queries
         for (ParsedQuery query : queries) {
-            result.append(processAQuery(query));
+            result.add(processAQuery(query));
         }
         endTime = System.currentTimeMillis();
         benchmark.setTimeWorkload(endTime - startTime);
@@ -445,7 +454,11 @@ public final class Main {
             startTime = System.currentTimeMillis();
             FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_results.csv");
             outputFile.append("DataBase  ,  NameRequest  ,  Result\n");
-            outputFile.write(result.toString());
+            for (int i = 0; i < queriesString.size(); i++) {
+                for (String s : result.get(i)) {
+                    outputFile.write(dataFile + "  ,  " + queriesString.get(i) + "  ,  " + s + "\n");
+                }
+            }
             outputFile.close();
             endTime = System.currentTimeMillis();
             benchmark.setTimeWritingResults(endTime - startTime);
@@ -454,7 +467,7 @@ public final class Main {
         if (useJena) {
             System.out.println("Verifying the answers...");
             startTime = System.currentTimeMillis();
-            System.out.println(checkSoundAndComplete(queries)?"The answers are sound and complete":"The answers are incorrect");
+            System.out.println(checkSoundAndComplete(queriesString, queries)?"The answers are sound and complete":"The answers are incorrect");
             endTime = System.currentTimeMillis();
             System.out.println("Verification time : " + (endTime - startTime) + " ms");
         }

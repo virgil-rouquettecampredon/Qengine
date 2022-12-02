@@ -31,6 +31,7 @@ public class MainTest {
     static Map<String, Integer> dico;
     static Map<Integer, String> dicoReverse;
     static ArrayList<ParsedQuery> queries;
+    static ArrayList<String> queriesString;
     static File[] listOfFiles;
     static int defaultQueriesSize = 0;
 
@@ -45,12 +46,14 @@ public class MainTest {
         File folder = new File(queryFolder);
         listOfFiles = folder.listFiles();
         queries = new ArrayList<>();
+        queriesString = new ArrayList<>();
         //Read the queries
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().endsWith(".queryset")) {
-                queries.addAll(parseQueries(queryFolder + File.separator + file.getName()));
+                queriesString.addAll(parseQueries(queryFolder + File.separator + file.getName()));
             }
         }
+        queries = transformQueriesIntoParsedQueries(queriesString);
         defaultQueriesSize = queries.size();
 
         //Get all indexes from the knowledgeBase
@@ -149,7 +152,7 @@ public class MainTest {
 
     @Test
     public void checkSoundnessAndCompleteness() {
-        assertTrue(checkSoundAndComplete(queries));
+        assertTrue(checkSoundAndComplete(queriesString,queries));
     }
 
     @Test

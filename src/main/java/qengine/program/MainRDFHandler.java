@@ -61,7 +61,6 @@ public final class MainRDFHandler extends AbstractRDFHandler {
 		}
 	}
 	@Override
-	//TODO: Organiser le dictionnaire dans l'ordre lexicographique
 	public void handleStatement(Statement st) {
 		//System.out.println("\n" + st.getSubject() + "\t " + st.getPredicate() + "\t " + st.getObject());
 		if (!dico.containsKey(st.getSubject().toString())) {
