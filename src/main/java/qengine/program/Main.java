@@ -331,7 +331,7 @@ public final class Main {
 //    }
 
     //use Jena to answer a multiply query in a query folder
-    public static Set<String> processAQueryJena(String query, Model model) {
+    public static Set<String> processAQueryJena(String query, Model model, String queryFile) {
         Set<String> answers = new HashSet<>();
 
         Query queryJena = QueryFactory.create(query);
@@ -344,12 +344,13 @@ public final class Main {
                     QuerySolution soln = results.nextSolution();
                     answers.add(soln.get("v0").toString());
                 }
+                writeQuery(query, queryFile);
             }
         }
         return answers;
     }
 
-    public static boolean checkSoundAndComplete(ArrayList<String> queries, ArrayList<ParsedQuery> parsedQueries) {
+    public static boolean checkSoundAndComplete(ArrayList<String> queries, ArrayList<ParsedQuery> parsedQueries, ArrayList<String> fileNames) {
         Model model = parseDataJena();
         Set<String> resultSelf = null;
         Set<String> resultJena = null;
@@ -357,7 +358,7 @@ public final class Main {
 
         for (int i = 0; i < queries.size(); i++) {
             resultSelf = processAQuery(parsedQueries.get(i));
-            resultJena = processAQueryJena(queries.get(i), model);
+            resultJena = processAQueryJena(queries.get(i), model, fileNames.get(i/1000));
             if (!resultSelf.equals(resultJena)) {
                 System.out.println("The query " + queries.get(i) + " is not sound and complete " + i);
                 //System.out.println("result of self: " + resultSelf);
@@ -366,6 +367,30 @@ public final class Main {
             }
         }
         return true;
+    }
+
+    // ========================================================================
+
+    //function that write into a File the query if the query have an answer
+    public static void writeQuery(String query, String queryFile) {
+        try {
+            File fOutput = new File("QueryModifie");
+            if (!fOutput.exists()) {
+                try {
+                    fOutput.mkdir();
+                } catch (Exception se) {
+                    System.err.println("Could not create the output folder");
+                    throw se;
+                }
+            }
+            FileWriter fw = new FileWriter("QueryModifie" + File.separator + queryFile, true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(query);
+            bw.newLine();
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // ========================================================================
@@ -439,9 +464,11 @@ public final class Main {
 
         //Read the queries
         startTime = System.currentTimeMillis();
+        ArrayList<String> queriesName = new ArrayList<>();
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().endsWith(".queryset")) {
                 queriesString.addAll(parseQueries(queryFolder + File.separator + file.getName()));
+                queriesName.add(file.getName());
             }
         }
 
@@ -503,7 +530,7 @@ public final class Main {
         if (useJena) {
             System.out.println("Verifying the answers...");
             startTime = System.currentTimeMillis();
-            System.out.println(checkSoundAndComplete(queriesString, queries)?"The answers are sound and complete":"The answers are incorrect");
+            System.out.println(checkSoundAndComplete(queriesString, queries, queriesName)?"The answers are sound and complete":"The answers are incorrect");
             endTime = System.currentTimeMillis();
             System.out.println("Verification time : " + (endTime - startTime) + " ms");
         }
@@ -514,7 +541,7 @@ public final class Main {
         benchmark.setTimeTotal(endTimeTotal - startTimeTotal);
 
 
-        FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_stats.csv");
+        FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_stats.csv");
         outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées\n");
         outputFile.write(benchmark.toString());
         outputFile.close();
