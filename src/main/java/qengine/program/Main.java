@@ -59,7 +59,7 @@ public final class Main {
         System.out.println("-J, --Jena\n\tUse Jena to verify the answers, and check completeness");
         System.out.println("-w, --warm <int between 0 and 100>\n\tProcess the first <int> percent of the queries to warm up the cache");
         System.out.println("-s, --shuffle\n\tShuffle the queries before processing them");
-        System.out.println("e, --export-query-results\n\tExport the query results in the output folder");
+        System.out.println("-e, --export-query-results\n\tExport the query results in the output folder");
         System.out.println("-h, --help\n\tDisplay this message again");
         System.exit(0);
     }
@@ -225,7 +225,6 @@ public final class Main {
 
         ArrayList<String> queries = new ArrayList<>();
 
-        System.out.println("Reading " + queryFile);
         // le nombre d'index et le nombre d'index créés donc 6 ici
         try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
             Iterator<String> lineIterator = lineStream.iterator();
@@ -437,6 +436,7 @@ public final class Main {
         File[] listOfFiles = folder.listFiles();
         ArrayList<ParsedQuery> queries = new ArrayList<>();
         ArrayList<String> queriesString = new ArrayList<>();
+
         //Read the queries
         startTime = System.currentTimeMillis();
         for (File file : listOfFiles) {
@@ -444,6 +444,12 @@ public final class Main {
                 queriesString.addAll(parseQueries(queryFolder + File.separator + file.getName()));
             }
         }
+
+        // Count duplicate queries
+        Set<String> uniqueQueries = new HashSet<>(queriesString);
+        int nbDuplicateQueries = queriesString.size() - uniqueQueries.size();
+        benchmark.setNbDuplicateQueries(nbDuplicateQueries);
+
         endTime = System.currentTimeMillis();
         benchmark.setTimeReadingQueries(endTime - startTime);
         System.out.println("Queries loaded");
@@ -473,22 +479,21 @@ public final class Main {
         benchmark.setNbQueries(queries.size());
 
         ArrayList<Set<String>> result = new ArrayList<>();
-        System.out.println("Processing queries...");
         startTime = System.currentTimeMillis();
         //Process the queries
         for (ParsedQuery query : queries) {
-            result.add(processAQuery(query));
+            Set<String> resultQuery = processAQuery(query);
+            result.add(resultQuery);
         }
         endTime = System.currentTimeMillis();
         benchmark.setTimeWorkload(endTime - startTime);
         if(exportQueryResults) {
             startTime = System.currentTimeMillis();
             FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_results.csv");
-            outputFile.append("DataBase  ,  NameRequest  ,  Result\n");
+            outputFile.append("DataBase  ,  NameRequest  ,  NbBranches  ,  Result  ,  NbResults\n");
             for (int i = 0; i < queriesString.size(); i++) {
-                for (String s : result.get(i)) {
-                    outputFile.write(dataFile + "  ,  " + queriesString.get(i) + "  ,  " + s + "\n");
-                }
+                int nbAnswer = result.get(i).stream().findFirst().get().equals("No answer")?0:result.get(i).size();
+                outputFile.append(dataFile + "  ,  " + queriesString.get(i) + "  ,  " + StatementPatternCollector.process(queries.get(i).getTupleExpr()).size() + "  ,  " + result.get(i) + "  ,  " + nbAnswer +  "\n");
             }
             outputFile.close();
             endTime = System.currentTimeMillis();
@@ -503,12 +508,14 @@ public final class Main {
             System.out.println("Verification time : " + (endTime - startTime) + " ms");
         }
 
+
+
         long endTimeTotal = System.currentTimeMillis();
         benchmark.setTimeTotal(endTimeTotal - startTimeTotal);
 
 
         FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_" + queryFolder + "_stats.csv");
-        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)\n");
+        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées\n");
         outputFile.write(benchmark.toString());
         outputFile.close();
     }

@@ -13,6 +13,7 @@ public class Benchmark {
     private long timeWorkload; //Process queries
     private long timeTotal;
     private long timeWritingResults;
+    private long nbDuplicateQueries;
 
     public Benchmark() {
         this.nameDataFile = "";
@@ -27,6 +28,7 @@ public class Benchmark {
         this.timeWorkload = 0;
         this.timeTotal = 0;
         this.timeWritingResults = 0;
+        this.nbDuplicateQueries = 0;
     }
 
     public String getNameDataFile() {
@@ -117,8 +119,12 @@ public class Benchmark {
     public long getTimeWritingResults() { return timeWritingResults; }
 
     public void setTimeWritingResults(long timeWritingResults) { this.timeWritingResults = timeWritingResults; }
+
+    public long getNbDuplicateQueries() { return nbDuplicateQueries; }
+
+    public void setNbDuplicateQueries(long nbDuplicateQueries) { this.nbDuplicateQueries = nbDuplicateQueries; }
     @Override
     public String toString() {
-        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal +  "\n";
+        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal + "  ,  " + nbDuplicateQueries + "\n";
     }
 }
