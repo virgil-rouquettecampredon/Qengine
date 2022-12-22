@@ -493,10 +493,12 @@ public final class Main {
             startTime = System.currentTimeMillis();
             //Try the first percentage warmPercentage of query
             int nbQueries = queries.size();
+            Random rand = new Random(7);
             for (int i = 0; i < nbQueries * warmPercentage / 100; i++) {
-                int random = (int) (Math.random() * queries.size());
-                processAQuery(queries.remove(random));
-                queriesString.remove(random);
+                // generate a random number with a seed
+                int randomNum = rand.nextInt(queries.size());
+                processAQuery(queries.remove(randomNum));
+                queriesString.remove(randomNum);
             }
             endTime = System.currentTimeMillis();
             System.out.println("Warming up done");
