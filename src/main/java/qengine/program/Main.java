@@ -305,7 +305,7 @@ public final class Main {
     }
 
     //use Jena to answer a multiply query in a query folder
-    public static Set<String> processAQueryJena(String query, Model model, String queryFile) {
+    public static Set<String> processAQueryJena(String query, Model model) {
         Set<String> answers = new HashSet<>();
 
         Query queryJena = QueryFactory.create(query);
@@ -318,13 +318,20 @@ public final class Main {
                     QuerySolution soln = results.nextSolution();
                     answers.add(soln.get("v0").toString());
                 }
-                writeQuery(query, queryFile);
             }
         }
         return answers;
     }
 
-    public static boolean checkSoundAndComplete(ArrayList<String> queries, ArrayList<ParsedQuery> parsedQueries, ArrayList<String> fileNames) {
+    public static ArrayList<Set<String>> processQueriesJena(ArrayList<String> queries, Model model) {
+        ArrayList<Set<String>> answers = new ArrayList<>();
+        for (String query : queries) {
+            answers.add(processAQueryJena(query, model));
+        }
+        return answers;
+    }
+
+    public static boolean checkSoundAndComplete(ArrayList<String> queries, ArrayList<ParsedQuery> parsedQueries) {
         Model model = parseDataJena();
         Set<String> resultSelf = null;
         Set<String> resultJena = null;
@@ -332,7 +339,7 @@ public final class Main {
 
         for (int i = 0; i < queries.size(); i++) {
             resultSelf = processAQuery(parsedQueries.get(i));
-            resultJena = processAQueryJena(queries.get(i), model, fileNames.get(i/1000));
+            resultJena = processAQueryJena(queries.get(i), model);
             if (!resultSelf.equals(resultJena)) {
                 System.out.println("The query " + queries.get(i) + " is not sound and complete " + i);
                 //System.out.println("result of self: " + resultSelf);
@@ -457,11 +464,11 @@ public final class Main {
 
         //Read the queries
         startTime = System.currentTimeMillis();
-        ArrayList<String> queriesName = new ArrayList<>();
+        //ArrayList<String> queriesName = new ArrayList<>();
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().endsWith(".queryset")) {
                 queriesString.addAll(parseQueries(queryFolder + File.separator + file.getName()));
-                queriesName.add(file.getName());
+                //queriesName.add(file.getName());
             }
         }
 
@@ -533,7 +540,7 @@ public final class Main {
         if (useJena) {
             System.out.println("Verifying the answers...");
             startTime = System.currentTimeMillis();
-            System.out.println(checkSoundAndComplete(queriesString, queries, queriesName)?"The answers are sound and complete":"The answers are incorrect");
+            System.out.println(checkSoundAndComplete(queriesString, queries)?"The answers are sound and complete":"The answers are incorrect");
             endTime = System.currentTimeMillis();
             System.out.println("Verification time : " + (endTime - startTime) + " ms");
         }
@@ -543,13 +550,25 @@ public final class Main {
         long endTimeTotal = System.currentTimeMillis();
         benchmark.setTimeTotal(endTimeTotal - startTimeTotal);
 
+        System.out.println("Evaluate time for Jena");
+
+        long startTimeJena = System.currentTimeMillis();
+        Model model = parseDataJena();
+        long endTimeJena = System.currentTimeMillis();
+        benchmark.setTimeParseDataJena(endTimeJena - startTimeJena);
+
+        long startTimeJena2 = System.currentTimeMillis();
+        ArrayList<Set<String>> resultJena = new ArrayList<>();
+        resultJena = processQueriesJena(queriesString, model);
+        long endTimeJena2 = System.currentTimeMillis();
+        benchmark.setTimeEvaluateQueriesJena(endTimeJena2 - startTimeJena2);
 
         FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_stats.csv");
         String nbBranchesString = "";
         for (int i = 0; i < nbBranchements.size(); i++) {
             nbBranchesString += "  ,  " + "branchement de taille " + (i+1);
         }
-        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,  temps de transformation des requêtes (ms)  ,  temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées "+ nbBranchesString +"\n");
+        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,  temps de transformation des requêtes (ms)  ,  temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées "+ nbBranchesString + "  ,  Temps parsing data (ms)  ,  Temps évaluation requetes\n");
         outputFile.write(benchmark.toString());
         outputFile.close();
     }

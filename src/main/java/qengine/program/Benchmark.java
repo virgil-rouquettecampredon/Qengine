@@ -18,6 +18,8 @@ public class Benchmark {
     private long nbDuplicateQueries;
     private long transformationQueriesTime;
     private ArrayList<Integer> nbConnections;
+    private long timeParseDataJena;
+    private long timeEvaluateQueriesJena;
 
     public Benchmark() {
         this.nameDataFile = "";
@@ -34,6 +36,8 @@ public class Benchmark {
         this.timeWritingResults = 0;
         this.nbDuplicateQueries = 0;
         this.transformationQueriesTime = 0;
+        this.timeParseDataJena = 0;
+        this.timeEvaluateQueriesJena = 0;
         this.nbConnections = new ArrayList<>();
     }
 
@@ -142,13 +146,20 @@ public class Benchmark {
         this.nbConnections = nbConnections;
     }
 
+    public long getTimeParseDataJena() { return timeParseDataJena; }
+
+    public void setTimeParseDataJena(long timeParseDataJena) { this.timeParseDataJena = timeParseDataJena; }
+
+    public long getTimeEvaluateQueriesJena() { return timeEvaluateQueriesJena; }
+
+    public void setTimeEvaluateQueriesJena(long timeEvaluateQueriesJena) { this.timeEvaluateQueriesJena = timeEvaluateQueriesJena; }
     @Override
     public String toString() {
         String nbConnectionsString = "";
         for (Integer nbConnection : nbConnections) {
             nbConnectionsString += "  ,  "+nbConnection;
         }
-        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + transformationQueriesTime + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal + "  ,  " + nbDuplicateQueries + nbConnectionsString + "\n";
+        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + transformationQueriesTime + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal + "  ,  " + nbDuplicateQueries + nbConnectionsString + "  ,  " + timeParseDataJena + "  ,  " + timeEvaluateQueriesJena +"\n";
     }
 
 }
