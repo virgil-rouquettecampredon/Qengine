@@ -1,5 +1,7 @@
 package qengine.program;
 
+import java.util.ArrayList;
+
 public class Benchmark {
     private String nameDataFile;
     private String nameQueryFolder;
@@ -14,6 +16,8 @@ public class Benchmark {
     private long timeTotal;
     private long timeWritingResults;
     private long nbDuplicateQueries;
+    private long transformationQueriesTime;
+    private ArrayList<Integer> nbConnections;
 
     public Benchmark() {
         this.nameDataFile = "";
@@ -29,6 +33,8 @@ public class Benchmark {
         this.timeTotal = 0;
         this.timeWritingResults = 0;
         this.nbDuplicateQueries = 0;
+        this.transformationQueriesTime = 0;
+        this.nbConnections = new ArrayList<>();
     }
 
     public String getNameDataFile() {
@@ -123,9 +129,26 @@ public class Benchmark {
     public long getNbDuplicateQueries() { return nbDuplicateQueries; }
 
     public void setNbDuplicateQueries(long nbDuplicateQueries) { this.nbDuplicateQueries = nbDuplicateQueries; }
+
+    public long getTransformationQueriesTime() { return transformationQueriesTime; }
+
+    public void setTransformationQueriesTime(long transformationQueriesTime) {
+        this.transformationQueriesTime = transformationQueriesTime;
+    }
+
+    public ArrayList<Integer> getNbConnections() { return nbConnections; }
+
+    public void setNbConnections(ArrayList<Integer> nbConnections) {
+        this.nbConnections = nbConnections;
+    }
+
     @Override
     public String toString() {
-        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal + "  ,  " + nbDuplicateQueries + "\n";
+        String nbConnectionsString = "";
+        for (Integer nbConnection : nbConnections) {
+            nbConnectionsString += "  ,  "+nbConnection;
+        }
+        return nameDataFile + "  ,  " + nameQueryFolder + "  ,  " +  nbTriplets + "  ,  " + nbQueries + "  ,  " + timeReadingData + "  ,  " + timeReadingQueries + "  ,  " + transformationQueriesTime + "  ,  " + timeCreatingDico + "  ,  " + nbIndex + "  ,  " + timeCreatingIndex + "  ,  " + timeWorkload + "  ,  " + timeWritingResults + "  ,  " + timeTotal + "  ,  " + nbDuplicateQueries + nbConnectionsString + "\n";
     }
 
 }

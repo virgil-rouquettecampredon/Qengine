@@ -304,32 +304,6 @@ public final class Main {
         return model;
     }
 
-//    public static void parseQueriesJena(String queryFile, Model model) {
-//        try (Stream<String> lineStream = Files.lines(Paths.get(queryFile))) {
-//            SPARQLParser sparqlParser = new SPARQLParser();
-//            Iterator<String> lineIterator = lineStream.iterator();
-//            StringBuilder queryString = new StringBuilder();
-//            //create a folder to store the results if it doesn't exist
-//            while (lineIterator.hasNext())
-//                /*
-//                 * On stocke plusieurs lignes jusqu'à ce que l'une d'entre elles se termine par un '}'
-//                 * On considère alors que c'est la fin d'une requête
-//                 */ {
-//                String line = lineIterator.next();
-//                queryString.append(line);
-//
-//                if (line.trim().endsWith("}")) {
-//
-//                    processAQueryJena(queryString.toString(), model);// Traitement de la requête, à adapter/réécrire pour votre programme
-//
-//                    queryString.setLength(0); // Reset le buffer de la requête en chaine vide
-//                }
-//            }
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-
     //use Jena to answer a multiply query in a query folder
     public static Set<String> processAQueryJena(String query, Model model, String queryFile) {
         Set<String> answers = new HashSet<>();
@@ -388,10 +362,29 @@ public final class Main {
             bw.write(query);
             bw.newLine();
             bw.close();
+            fw.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    //function that count the number of queryset of type ParsedQuery
+    public static ArrayList<Integer> countQuerySet(ArrayList<ParsedQuery> parsedQueries) {
+        ArrayList<Integer> nbConnection = new ArrayList<>();
+        for (ParsedQuery query : parsedQueries) {
+            List<StatementPattern> patterns = StatementPatternCollector.process(query.getTupleExpr());
+            while (nbConnection.size() < patterns.size()) {
+                nbConnection.add(0);
+            }
+            Integer count = nbConnection.get(patterns.size()-1) ;
+            count = count + 1;
+            nbConnection.set(patterns.size()-1, count);
+        }
+        return nbConnection;
+    }
+
+
+
 
     // ========================================================================
 
@@ -481,12 +474,19 @@ public final class Main {
         benchmark.setTimeReadingQueries(endTime - startTime);
         System.out.println("Queries loaded");
         System.out.println("Loading time : " + (endTime - startTime) + " ms");
+        System.out.println("Number of queries : " + queriesString.size());
 
         if(shuffle) {
             Collections.shuffle(queriesString);
         }
 
+        startTime = System.currentTimeMillis();
         queries = transformQueriesIntoParsedQueries(queriesString);
+        endTime = System.currentTimeMillis();
+        benchmark.setTransformationQueriesTime(endTime - startTime);
+
+        ArrayList<Integer> nbBranchements = countQuerySet(queries);
+        benchmark.setNbConnections(nbBranchements);
 
         if(warm) {
             System.out.println("Warming up...");
@@ -509,6 +509,7 @@ public final class Main {
         startTime = System.currentTimeMillis();
         //Process the queries
         for (ParsedQuery query : queries) {
+            //test the number of connection of a request
             Set<String> resultQuery = processAQuery(query);
             result.add(resultQuery);
         }
@@ -542,7 +543,11 @@ public final class Main {
 
 
         FileWriter outputFile = new FileWriter(outputFolder + File.separator + startTimeTotal + "_stats.csv");
-        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,   temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées\n");
+        String nbBranchesString = "";
+        for (int i = 0; i < nbBranchements.size(); i++) {
+            nbBranchesString += "  ,  " + "branchement de taille " + (i+1);
+        }
+        outputFile.append("nom du fichier de donnees  ,  nom du dossier des requêtes  ,  nombre de triplets RDF  ,   nombre de requêtes  ,   temps de lecture des données (ms)  ,  temps de lecture des requêtes (ms)  ,  temps de transformation des requêtes (ms)  ,  temps création dico (ms)  ,  nombre d’index  ,  temps de création des index (ms)  ,  temps total d’évaluation du workload (ms)  ,  temps total d'écriture des résultats (ms)  ,  temps total (du début à la fin du programme) (ms)  ,  queries dupliquées "+ nbBranchesString +"\n");
         outputFile.write(benchmark.toString());
         outputFile.close();
     }
